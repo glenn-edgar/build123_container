@@ -1,0 +1,20 @@
+mk-cad
+======
+
+This project depends on:
+
+- build123d (https://github.com/gumyr/build123d), Apache License 2.0.
+  Consumed via pip; not vendored.
+- OCP (https://github.com/CadQuery/OCP), Apache License 2.0.
+  Consumed transitively via build123d.
+- OpenCascade Technology (https://github.com/Open-Cascade-SAS/OCCT),
+  LGPL 2.1 with exception. Consumed transitively via OCP.
+- yacv / yet-another-cad-viewer (https://github.com/yeicor-3d/yet-another-cad-viewer).
+  Consumed unmodified as a sidecar container.
+
+Vendored components:
+
+- ltree.so — SQLite ltree extension (this user's own work).
+- vendor/kb_python/ — KnowledgeBaseManager + Construct_KB classes
+  (this user's own work, copied verbatim from
+   ~/knowledge_base/kb_modules/kb_python/sqlite3/construct_kb/).

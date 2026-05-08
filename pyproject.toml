@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mk-cad"
+version = "0.1.0"
+description = "build123d + ltree CAD prototype"
+requires-python = ">=3.10"
+license = { text = "LGPL-2.1-or-later" }
+dependencies = []
+
+[project.scripts]
+mk = "mk.__main__:main"
+
+[tool.setuptools]
+packages = ["mk", "mk.commands", "vendor", "vendor.kb_python"]
+
+[tool.setuptools.package-dir]
+"mk" = "src/mk"
+"mk.commands" = "src/mk/commands"
+"vendor" = "vendor"
+"vendor.kb_python" = "vendor/kb_python"
+
+[tool.setuptools.package-data]
+vendor = ["ltree.so"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

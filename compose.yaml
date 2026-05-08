@@ -1,0 +1,30 @@
+# Both services use the same locally-built image (build123d :with_yacv +
+# our mk layer). They differ only in entrypoint: cad runs the CLI, viewer
+# runs yacv-server watching /project/outputs/ for glTF.
+#
+# Host project directory is set via PROJECT_DIR; defaults to ./project.
+# Examples:
+#   docker compose run --rm cad init                           # uses ./project
+#   PROJECT_DIR=/home/me/cad/robot1 docker compose run --rm cad init
+services:
+  cad:
+    build: .
+    image: mk-cad:local
+    volumes:
+      - ${PROJECT_DIR:-./project}:/project
+    entrypoint: ["mk"]
+    networks: [internal]
+
+  viewer:
+    image: mk-cad:local
+    depends_on: [cad]                      # ensures the image is built
+    volumes:
+      - ${PROJECT_DIR:-./project}:/project
+    # yacv-server CLI args TBD at Phase 5; placeholder below.
+    entrypoint: ["yacv-server", "--watch", "/project/outputs"]
+    ports:
+      - "32323:32323"                      # yacv default port
+    networks: [internal]
+
+networks:
+  internal:

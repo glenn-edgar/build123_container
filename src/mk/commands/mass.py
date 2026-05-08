@@ -1,0 +1,131 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+"""mk mass <asm-kb>: total mass, CoM, inertia tensor, principal moments+axes.
+
+Conventions (mm/g, per spec §10 Phase 4):
+- build123d/OCC operates in millimetres; volume is mm^3.
+- Density rows store g/cm^3 in part KB's META.density.value.
+- mass(g) = volume(mm^3) * density(g/cm^3) / 1000.
+
+INST.location.loc is honoured (translation only). Mate-resolved positions
+(rotation, joint coincidence) are a Phase 6 concern; if absent we use
+each part's local origin.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from typing import Any
+
+from mk.db import DEFAULT_DB_PATH, open_db
+from mk.geometry import brep_bytes_to_shape
+from mk.transform import apply_location_to_topods
+
+DEFAULT_DENSITY = 1.0  # g/cm^3 if META.density absent
+
+
+def _part_density(conn, part_kb: str) -> float:
+    row = conn.execute(
+        "SELECT properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'META' AND name = 'density'",
+        (part_kb,),
+    ).fetchone()
+    if row is None:
+        return DEFAULT_DENSITY
+    val = json.loads(row["properties"]).get("value")
+    return float(val) if val is not None else DEFAULT_DENSITY
+
+
+def _located_topods(blob: bytes, location: dict[str, Any] | None):
+    """Return a TopoDS_Shape with the INST's location (translation+rotation) applied."""
+    shape = brep_bytes_to_shape(blob)
+    return apply_location_to_topods(shape.wrapped, location)
+
+
+def add_parser(subparsers) -> None:
+    p = subparsers.add_parser("mass", help="Mass / CoM / inertia for an assembly KB.")
+    p.add_argument("asm_kb", help="assembly KB name, e.g. asm_demo")
+    p.add_argument("--db", default=DEFAULT_DB_PATH)
+    p.set_defaults(func=run)
+
+
+def run(args: argparse.Namespace) -> int:
+    from OCP.BRepGProp import BRepGProp
+    from OCP.GProp import GProp_GProps
+
+    conn = open_db(args.db)
+
+    rows = conn.execute(
+        "SELECT path, properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'INST' ORDER BY path",
+        (args.asm_kb,),
+    ).fetchall()
+    if not rows:
+        print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
+        conn.close()
+        return 1
+
+    total = GProp_GProps()
+    n_inst = 0
+
+    for r in rows:
+        props = json.loads(r["properties"])
+        gh = props.get("geom_hash")
+        ref_kb = props.get("ref_kb")
+        if not gh or not ref_kb:
+            print(f"  skip {r['path']}: missing geom_hash or ref_kb (run mk build first?)",
+                  file=sys.stderr)
+            continue
+
+        blob_row = conn.execute(
+            "SELECT brep_blob FROM geometry WHERE hash = ?", (gh,)
+        ).fetchone()
+        if blob_row is None:
+            print(f"  skip {r['path']}: BREP {gh[:12]} missing from cache", file=sys.stderr)
+            continue
+
+        topods = _located_topods(blob_row["brep_blob"], props.get("location"))
+        density = _part_density(conn, ref_kb)
+
+        item = GProp_GProps()
+        BRepGProp.VolumeProperties_s(topods, item)
+        # GProp_GProps.Add weights item by `density` and combines parallel-axis correctly.
+        total.Add(item, density)
+
+        # Per-instance line: volume in mm^3, mass = volume * density / 1000 grams.
+        vol_mm3 = item.Mass()
+        mass_g = vol_mm3 * density / 1000.0
+        com = item.CentreOfMass()
+        print(f"  {r['path']}  ρ={density:g}  V={vol_mm3:.3f} mm^3  "
+              f"m={mass_g:.4f} g  com=({com.X():.3f},{com.Y():.3f},{com.Z():.3f})")
+        n_inst += 1
+
+    conn.close()
+
+    if n_inst == 0:
+        print("no buildable instances", file=sys.stderr)
+        return 1
+
+    # `total.Mass()` here is sum(volume_i * density_i) in mm^3·(g/cm^3) = mg·1000 → grams ÷1000.
+    # Equivalently sum_i(vol_i_mm3 * density_g_per_cm3) / 1000 == grams.
+    total_grams = total.Mass() / 1000.0
+    com = total.CentreOfMass()
+    inertia = total.MatrixOfInertia()  # gp_Mat
+    pp = total.PrincipalProperties()
+    p1, p2, p3 = pp.Moments()
+    a1 = pp.FirstAxisOfInertia()
+    a2 = pp.SecondAxisOfInertia()
+    a3 = pp.ThirdAxisOfInertia()
+
+    print()
+    print(f"total mass:    {total_grams:.4f} g")
+    print(f"centre of mass:  ({com.X():.4f}, {com.Y():.4f}, {com.Z():.4f}) mm")
+    print(f"inertia tensor (g·mm^2, weighted):")
+    for i in (1, 2, 3):
+        row = "  " + "  ".join(f"{inertia.Value(i, j) / 1000.0:>14.4f}" for j in (1, 2, 3))
+        print(row)
+    print(f"principal moments (g·mm^2):  {p1 / 1000.0:.4f}  {p2 / 1000.0:.4f}  {p3 / 1000.0:.4f}")
+    print(f"principal axes:")
+    for label, ax in (("e1", a1), ("e2", a2), ("e3", a3)):
+        print(f"  {label} = ({ax.X():.4f}, {ax.Y():.4f}, {ax.Z():.4f})")
+    return 0
