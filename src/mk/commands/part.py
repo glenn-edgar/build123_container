@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """mk part list / mk part show."""
 from __future__ import annotations
 

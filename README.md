@@ -2,6 +2,8 @@
 
 build123d + ltree CAD prototype. See `continue.md` for the spec.
 
+Licensed under the [Mozilla Public License 2.0](LICENSE).
+
 ## Status
 
 Phases 1–4, 6 done: container + DB, manifest apply, builder + STEP export, mass

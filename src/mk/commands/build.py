@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """mk build <asm-kb>: walk INST rows, exec builders, cache BREP, set geom_hash."""
 from __future__ import annotations
 

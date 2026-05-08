@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """Phase-2 verify fixture: two parts + a flat assembly with one mate."""
 from mk.kb import connect, kb_asm, kb_part
 

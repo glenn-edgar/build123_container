@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """mk mass <asm-kb>: total mass, CoM, inertia tensor, principal moments+axes.
 
 Conventions (mm/g, per spec §10 Phase 4):

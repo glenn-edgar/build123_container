@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """mk bom <asm-kb>: flat BOM by counting INST rows grouped by ref_kb."""
 from __future__ import annotations
 

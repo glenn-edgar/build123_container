@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """Builder execution: read PART.body source, exec, return a build123d shape."""
 from __future__ import annotations
 

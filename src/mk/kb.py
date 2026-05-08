@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """Manifest API: ``connect``, ``kb_part``, ``kb_asm``.
 
 Wraps the vendored ``Construct_KB`` with CAD-specific sentinel labels (PART,

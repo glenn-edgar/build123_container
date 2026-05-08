@@ -70,8 +70,11 @@ These are unchanged. Re-stated for self-containment:
 - **Engine**: build123d only.
 - **Geometry hash**: `sha256(STEP-bytes)`. Param-aware hashing is v2.
 - **Caching**: prototype rebuilds on every `mk build`; cascade caching is v2.
-- **License**: LGPL 2.1 with the project's Python-aware exception. build123d
-  is depended on via the container, *not* vendored as source.
+- **License**: Mozilla Public License 2.0 (MPL-2.0). File-level copyleft —
+  modifications to mk-cad files stay MPL; embedding in proprietary work is
+  fine. Supersedes the rev-2 spec's LGPL+exception decision (custom exception
+  text was the risk; MPL achieves the same intent with battle-tested terms).
+  build123d is depended on via the container, *not* vendored as source.
 
 For the long-form rationale behind each, see the rev-2 archive — captured in
 this file's history (`HISTORY.md`) and reproduced in `docs/spec_r2.md` if you

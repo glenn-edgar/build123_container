@@ -87,6 +87,20 @@ deferred; everything else complete.
   recur. Docker Desktop's pre-existing `x86_64`-only binfmt handler is
   sufficient for our amd64 builds — no `multiarch/qemu-user-static` needed.
 
+## 2026-05-08 — Licensing decision
+
+Relicensed from rev-2's planned LGPL-2.1 + Python-aware exception to **Mozilla
+Public License 2.0**. Reason: the custom exception text (necessary because
+LGPL was written for the C/C++ linking model) is the kind of artisanal
+license-authoring that creates ambiguity. MPL 2.0 achieves the same intent —
+file-level copyleft on mk-cad source, with no friction when embedded in
+proprietary work — using battle-tested terms.
+
+Mechanical changes: `LICENSE` file added (canonical Mozilla text), SPDX
+headers on all 24 source files updated `LGPL-2.1-or-later` → `MPL-2.0`,
+`pyproject.toml` `license` field updated, `continue.md` §2 and `NOTICE`
+amended.
+
 ## What's next
 
 See `continue.md` (revision 3) for the forward plan: finish Phase 5, build a

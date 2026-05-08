@@ -1,6 +1,9 @@
 mk-cad
 ======
 
+mk-cad is licensed under the Mozilla Public License 2.0 (see LICENSE).
+SPDX-License-Identifier: MPL-2.0
+
 This project depends on:
 
 - build123d (https://github.com/gumyr/build123d), Apache License 2.0.

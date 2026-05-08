@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """DB connection, ltree extension loading, and idempotent schema setup.
 
 Why we don't use the vendored ``_create_tables``: it drops the KB tables before

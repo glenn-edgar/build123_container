@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """Rigid mate solver (Phase 6).
 
 For each MATE row in an assembly KB:

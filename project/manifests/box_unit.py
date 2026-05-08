@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """Phase-4 verify fixture: Box(10,10,10) density=1.0 → expected mass = 1.0 g.
 Volume = 1000 mm^3; density = 1 g/cm^3 = 1e-3 g/mm^3; mass = 1.000 g.
 """

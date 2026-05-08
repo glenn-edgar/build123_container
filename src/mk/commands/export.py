@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-License-Identifier: MPL-2.0
 """mk export <asm-kb> <fmt>: write STEP / STL / BREP for the assembly."""
 from __future__ import annotations
 
