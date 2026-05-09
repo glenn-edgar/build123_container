@@ -80,8 +80,25 @@ def run(args: argparse.Namespace) -> int:
             return 1
 
         shape = brep_bytes_to_shape(blob_row["brep_blob"])
+
         loc = build123d_location(props.get("location"))
         shape_for_export = loc * shape if loc is not None else shape
+
+        # Per-part color via META.color (hex string or build123d-named color).
+        # build123d's export_gltf preserves shape colors via XCAF. Apply after
+        # location since `loc * shape` returns a new shape that doesn't inherit
+        # the color attribute.
+        color_value = _read_part_meta(conn, ref_kb, "color") if ref_kb else None
+        if color_value:
+            color = _parse_color(color_value)
+            if color is not None:
+                shape_for_export.color = color
+            else:
+                print(
+                    f"  WARN: {r['path']} META.color={color_value!r} not understood; skipping",
+                    file=sys.stderr,
+                )
+
         shapes.append(shape_for_export)
 
         # Per-instance world-frame bbox for the sidebar.
@@ -122,7 +139,11 @@ def run(args: argparse.Namespace) -> int:
 
     from build123d import Compound, export_gltf
 
-    compound = Compound(shapes)
+    # Use children= keyword (not positional) so the tree-iteration in
+    # export_gltf sees per-child colors. Compound(positional_list) builds
+    # a TopoDS_Compound but leaves the NodeMixin children empty, so colors
+    # never reach the XCAF document.
+    compound = Compound(children=shapes)
 
     out_dir = Path(args.outdir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -150,6 +171,51 @@ def run(args: argparse.Namespace) -> int:
     print(f"wrote {index_path} with {len(joints_for_hotspots)} joint hotspot(s)")
     print(f"viewer: {VIEWER_URL}  (run `docker compose up -d viewer` if not already up)")
     return 0
+
+
+def _parse_color(value):
+    """Convert a META.color value to a build123d Color, or None on failure.
+    Accepts: hex strings ('#rgb', '#rrggbb'), RGB tuples/lists, or
+    build123d-recognized color names ('red', 'orange', etc.).
+    """
+    from build123d import Color
+
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)) and len(value) in (3, 4):
+        return Color(*value)
+    if isinstance(value, str):
+        s = value.strip()
+        if s.startswith("#"):
+            h = s.lstrip("#")
+            if len(h) == 3:
+                h = "".join(c * 2 for c in h)
+            if len(h) != 6:
+                return None
+            try:
+                r = int(h[0:2], 16) / 255.0
+                g = int(h[2:4], 16) / 255.0
+                b = int(h[4:6], 16) / 255.0
+                return Color(r, g, b)
+            except ValueError:
+                return None
+        try:
+            return Color(s)
+        except Exception:
+            return None
+    return None
+
+
+def _read_part_meta(conn, part_kb: str, name: str):
+    """Return the `value` field of a single META row, or None if absent."""
+    row = conn.execute(
+        "SELECT properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'META' AND name = ?",
+        (part_kb, name),
+    ).fetchone()
+    if row is None:
+        return None
+    return json.loads(row["properties"]).get("value")
 
 
 def _bbox(topods) -> tuple[tuple[float, float, float], tuple[float, float, float]]:

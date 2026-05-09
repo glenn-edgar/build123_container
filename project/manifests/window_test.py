@@ -187,6 +187,7 @@ with connect():
 
         p.meta("density", 1.05)
         p.meta("material", "ABS")
+        p.meta("color", "#f5f5f5")  # MECCANIXITY product is white
         p.builder(build_meccanixity_bracket)
 
     # ── N20 worm motor (16 RPM variant, vertical-shaft layout) ────────────
@@ -235,6 +236,7 @@ with connect():
         p.meta("_TODO_encoder_type", "magnetic_quadrature")
         p.meta("_TODO_encoder_cpr_pre_gear", 7)
         p.meta("density", 7.0)
+        p.meta("color", "#5a6573")  # gunmetal — looks like steel
         p.builder(build_n20_worm_motor_y_shaft)
 
     # ── Lever arm (30° pie slice from a 40 mm wheel) ─────────────────────
@@ -255,6 +257,7 @@ with connect():
 
         p.meta("density", 1.25)
         p.meta("material", "PLA")
+        p.meta("color", "#ff9028")  # orange — high-contrast for visible motion
         p.builder(build_lever_arm)
 
     # ── Stop strip (foam-faced, removable) ───────────────────────────────

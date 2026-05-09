@@ -66,7 +66,8 @@ def run(args: argparse.Namespace) -> int:
 
     from build123d import Compound, export_step, export_stl
 
-    compound = Compound(shapes)
+    # children= keyword preserves per-child color/label tree for XCAF export.
+    compound = Compound(children=shapes)
 
     out_dir = Path(args.outdir)
     out_dir.mkdir(parents=True, exist_ok=True)
