@@ -120,7 +120,7 @@ def build_lever_arm(p):
 def build_stop_strip(p):
     """Vertical stop strip on the sheet. Substrate is a tall thin block;
     foam pad is on the -Z face so the lever (sweeping in +Z direction)
-    contacts it. Mounting hole through the substrate to the sheet.
+    contacts it. Kept for future variants; not currently INST'd.
     """
     from build123d import Box, Cylinder, Pos  # noqa: F401
     sub = Pos(0, p["height"] / 2, 0) * Box(p["thickness"], p["height"], p["length"])
@@ -128,6 +128,23 @@ def build_stop_strip(p):
         p["thickness"], p["height"], p["foam_t"]
     )
     return sub + foam
+
+
+def build_paoleju_lbracket(p):
+    """Paoleju 2" stainless L-bracket. Two arms of length arm_l, width arm_w,
+    sheet-metal thickness arm_t, joined at 90°. Bracket-local: corner at the
+    -Z, +Y edge of the foot. Foot extends in +Z, vertical arm extends in +Y.
+    """
+    from build123d import Box, Pos  # noqa: F401
+    arm_l = p["arm_length"]
+    arm_w = p["arm_width"]
+    arm_t = p["arm_thickness"]
+    # Foot: lies on sheet. Bottom at y=0, top at y=arm_t. Z extends 0 to arm_l.
+    foot = Pos(0, arm_t / 2, arm_l / 2) * Box(arm_w, arm_t, arm_l)
+    # Vertical arm: rises from foot's z=0 corner. Y extends arm_t to arm_t+arm_l,
+    # Z extents 0 to arm_t (thickness).
+    wall = Pos(0, arm_t + arm_l / 2, arm_t / 2) * Box(arm_w, arm_l, arm_t)
+    return foot + wall
 
 
 # ── Apply ──────────────────────────────────────────────────────────────────
@@ -142,9 +159,10 @@ with connect():
         # Sheet top is at y=+t/2=+3.175. Bracket sits centered around the
         # bore-target world position (x=50). Sheet anchor matches.
         p.joint("bracket_anchor", origin=[50, 3.175, 0], z_dir=[0, 1, 0])
-        # Stop strips on the sheet top.
-        p.joint("stop_pos_anchor", origin=[60, 3.175, 18], z_dir=[0, 1, 0])
-        p.joint("stop_neg_anchor", origin=[60, 3.175, -18], z_dir=[0, 1, 0])
+        # L-bracket beside the gearbox. World Z chosen so the L's vertical
+        # arm sits past the lever's tip-arc radius (20 mm) — keeps the
+        # >180°-rotation path clear.
+        p.joint("lbracket_anchor", origin=[70, 3.175, 50], z_dir=[0, 1, 0])
 
         p.meta("density", 0.95)
         p.meta("material", "HDPE")
@@ -249,7 +267,7 @@ with connect():
         p.meta("color", "#ff9028")  # orange — high-contrast for visible motion
         p.builder(build_lever_arm)
 
-    # ── Stop strip (foam-faced, removable) ───────────────────────────────
+    # ── Stop strip (kept as part definition; not used in this assembly) ──
     with kb_part(
         "part_stop_strip",
         description="1/2\" plastic strip + 8 mm foam, vertical mount on sheet. Removable.",
@@ -258,15 +276,29 @@ with connect():
         p.param("thickness", 12.7, type="float")
         p.param("height", 25, type="float")
         p.param("foam_t", 8, type="float")
-
-        # base_bottom: bottom of substrate, faces -Y.
         p.joint("base_bottom", origin=[0, 0, 0], z_dir=[0, -1, 0])
-
         p.meta("density", 0.6)
         p.meta("material", "plastic+foam composite")
         p.meta("removable", True)
-        p.meta("calibration_state", "remove for cal; reinstall after")
         p.builder(build_stop_strip)
+
+    # ── Paoleju L-bracket (decorative beside-gearbox support) ────────────
+    with kb_part(
+        "part_paoleju_lbracket",
+        description="Paoleju 2\" stainless steel L-bracket, black (rendered red here)",
+    ) as p:
+        # 2" × 2" × 0.75" → 50.8 × 50.8 × 19.05 mm. Sheet metal thickness ~1.5 mm.
+        p.param("arm_length", 50.8, type="float")
+        p.param("arm_width", 19.05, type="float")
+        p.param("arm_thickness", 1.5, type="float")
+        # foot_bottom: bottom face of foot, faces -Y. Mates to sheet.
+        p.joint("foot_bottom", origin=[0, 0, 25.4], z_dir=[0, -1, 0])
+        p.meta("vendor", "Paoleju")
+        p.meta("part_number", "2-inch black L-bracket (10-pack)")
+        p.meta("material", "stainless steel")
+        p.meta("density", 7.9)               # stainless steel
+        p.meta("color", "#dc143c")           # crimson red
+        p.builder(build_paoleju_lbracket)
 
     # ── Assembly ─────────────────────────────────────────────────────────
     with kb_asm(
@@ -277,8 +309,7 @@ with connect():
         a.inst("bracket", ref_kb="part_meccanixity_bracket")
         a.inst("motor", ref_kb="part_n20_worm_motor_16rpm")
         a.inst("lever", ref_kb="part_lever_arm")
-        a.inst("stop_pos", ref_kb="part_stop_strip")
-        a.inst("stop_neg", ref_kb="part_stop_strip")
+        a.inst("lbracket", ref_kb="part_paoleju_lbracket")
 
         a.mate("a_bracket_to_sheet",
                joint_a="asm_window_test.INST.bracket.JOINT.foot_bottom",
@@ -292,11 +323,7 @@ with connect():
                joint_a="asm_window_test.INST.lever.JOINT.shaft_socket",
                joint_b="asm_window_test.INST.motor.JOINT.shaft_a_tip",
                mate_type="rigid")
-        a.mate("d_stop_pos_to_sheet",
-               joint_a="asm_window_test.INST.stop_pos.JOINT.base_bottom",
-               joint_b="asm_window_test.INST.sheet.JOINT.stop_pos_anchor",
-               mate_type="rigid")
-        a.mate("e_stop_neg_to_sheet",
-               joint_a="asm_window_test.INST.stop_neg.JOINT.base_bottom",
-               joint_b="asm_window_test.INST.sheet.JOINT.stop_neg_anchor",
+        a.mate("d_lbracket_to_sheet",
+               joint_a="asm_window_test.INST.lbracket.JOINT.foot_bottom",
+               joint_b="asm_window_test.INST.sheet.JOINT.lbracket_anchor",
                mate_type="rigid")
