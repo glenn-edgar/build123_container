@@ -125,7 +125,24 @@ what's painful and what's missing in the API. Concretely:
 Track friction. Don't fix as you go — write it down. The result of this phase
 should be a prioritized list that drives v2 design choices.
 
-## 5. v2 directions (sketches, not commitments)
+## 5. v2 plan
+
+**The v2 commitment lives in `docs/v2_plan.md`.** Four phases, ~5–6 weeks
+total:
+
+- **Phase A** — close v1.x gaps (SUB mates, topo-sort, mass override,
+  multi-asm viewer, mk part rm, pytest)
+- **Phase B** — simulation + actuation (revolute/prismatic mates, browser
+  animation, typed META schema, URDF export)
+- **Phase C** — layers (LAYER sentinel + visibility filter; per-command
+  policy; STEP roundtrip via XCAF)
+- **Phase D** — engineering drawings (HLR ortho-view → DXF; optional PDF)
+
+What's *out* of v2.0: FEA, Postgres, sandboxing, codegen, hash cascade,
+diff apply, portable surface syntax, view pipeline beyond drawings. See
+`docs/v2_plan.md` "Out of scope" section.
+
+## 5b. v2 sketch material (older notes)
 
 The rev-2 §11 v2-deferral list is the long form. Specific design notes
 accumulating under `docs/`:

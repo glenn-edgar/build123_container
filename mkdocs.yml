@@ -46,6 +46,7 @@ nav:
   - Writing parts: writing-parts.md
   - CLI reference: cli.md
   - Troubleshooting: troubleshooting.md
+  - v2 plan: v2_plan.md
   - v2 — Layers: v2_layers.md
 
 markdown_extensions:
