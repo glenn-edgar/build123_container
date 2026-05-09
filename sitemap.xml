@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/architecture/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/cli/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/getting-started/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/troubleshooting/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/v2_layers/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+    <url>
+         <loc>https://glenn-edgar.github.io/build123_container/writing-parts/</loc>
+         <lastmod>2026-05-09</lastmod>
+    </url>
+</urlset>
