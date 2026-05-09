@@ -7,3 +7,6 @@ dist/
 project/db/
 project/outputs/
 .venv/
+
+# mkdocs build output (deployed to gh-pages branch via `mkdocs gh-deploy`)
+site/
