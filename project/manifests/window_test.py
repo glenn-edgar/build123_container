@@ -39,37 +39,23 @@ def build_hdpe_sheet(p):
 
 
 def build_meccanixity_bracket(p):
-    """L-bracket. Foot in XZ plane at +Y up. Wall at the +X edge of the foot,
-    extending up. mount_face is on the wall's -X face (back, away from foot).
-    Motor mounts there and extends in -X direction.
+    """Wrap-around clamp bracket for the N20 motor body.
+
+    Single block with a through-bore sized for the motor's body cylinder.
+    Bracket-local X = depth along motor body axis (the bracket grips an
+    8.5 mm slice of the body length). Y = vertical height. Z = horizontal
+    width perpendicular to the body. Bottom face sits on the sheet; bore
+    runs along bracket-local X with the motor body sliding through.
     """
     from build123d import Box, Cylinder, Pos, Rotation  # noqa: F401
-    foot = Pos(0, p["foot_t"] / 2, p["foot_d"] / 2) * Box(
-        p["foot_w"], p["foot_t"], p["foot_d"]
+    block = Pos(0, p["height"] / 2, 0) * Box(p["depth"], p["height"], p["width"])
+    # Bore along bracket-local X (default Cylinder is along Z; rotate +90° about Y).
+    bore = (
+        Pos(0, p["bore_y"], 0)
+        * Rotation(0, 90, 0)
+        * Cylinder(p["bore_r"], p["depth"] * 4)
     )
-    wall_x = p["foot_w"] / 2 - p["wall_thickness"] / 2
-    wall = Pos(wall_x, p["foot_t"] + p["wall_h"] / 2, p["foot_d"] / 2) * Box(
-        p["wall_thickness"], p["wall_h"], p["foot_d"]
-    )
-    body = foot + wall
-
-    # Bores through the wall along X (Cylinder default is Z; rotate to X).
-    bore_y = p["foot_t"] + p["wall_h"] / 2
-    bore_z = p["foot_d"] / 2
-    central_bore = Pos(wall_x, bore_y, bore_z) * Rotation(0, 90, 0) * Cylinder(
-        p["central_bore_d"] / 2, p["wall_thickness"] * 4
-    )
-    screw_l = Pos(
-        wall_x, bore_y, bore_z - p["screw_spacing"] / 2
-    ) * Rotation(0, 90, 0) * Cylinder(
-        p["screw_clearance_d"] / 2, p["wall_thickness"] * 4
-    )
-    screw_r = Pos(
-        wall_x, bore_y, bore_z + p["screw_spacing"] / 2
-    ) * Rotation(0, 90, 0) * Cylinder(
-        p["screw_clearance_d"] / 2, p["wall_thickness"] * 4
-    )
-    return body - central_bore - screw_l - screw_r
+    return block - bore
 
 
 def build_n20_worm_motor_y_shaft(p):
@@ -148,46 +134,45 @@ def build_stop_strip(p):
 
 with connect():
     # ── HDPE sheet ────────────────────────────────────────────────────────
-    with kb_part("part_hdpe_sheet", description="6\"×12\"×1/2\" HDPE base plate") as p:
+    with kb_part("part_hdpe_sheet", description="6\"×12\"×1/4\" HDPE base plate, green") as p:
         p.param("w", 152.4, type="float")
-        p.param("t", 12.7, type="float")
+        p.param("t", 6.35, type="float")    # 1/4"
         p.param("d", 304.8, type="float")
 
-        # Bracket anchor: top-of-sheet, near +X long edge, at z=0.
-        # X chosen so the bracket foot's +X edge lands at the sheet edge (76.2).
-        p.joint("bracket_anchor", origin=[67.2, 6.35, 0], z_dir=[0, 1, 0])
-        # Stop strips on the sheet top, on either side of z=0 (lever swing).
-        p.joint("stop_pos_anchor", origin=[60, 6.35, 18], z_dir=[0, 1, 0])
-        p.joint("stop_neg_anchor", origin=[60, 6.35, -18], z_dir=[0, 1, 0])
+        # Sheet top is at y=+t/2=+3.175. Bracket sits centered around the
+        # bore-target world position (x=50). Sheet anchor matches.
+        p.joint("bracket_anchor", origin=[50, 3.175, 0], z_dir=[0, 1, 0])
+        # Stop strips on the sheet top.
+        p.joint("stop_pos_anchor", origin=[60, 3.175, 18], z_dir=[0, 1, 0])
+        p.joint("stop_neg_anchor", origin=[60, 3.175, -18], z_dir=[0, 1, 0])
 
         p.meta("density", 0.95)
         p.meta("material", "HDPE")
+        p.meta("color", "#2e7d32")        # forest green
         p.builder(build_hdpe_sheet)
 
-    # ── MECCANIXITY bracket ──────────────────────────────────────────────
+    # ── MECCANIXITY bracket (wrap-around clamp) ──────────────────────────
     with kb_part(
         "part_meccanixity_bracket",
-        description="MECCANIXITY 18×15 mm L-bracket for N20, 11.5 mm hole spacing",
+        description="MECCANIXITY 18×15×8.5 mm wrap-around clamp for N20 motor body",
     ) as p:
-        p.param("foot_w", 18, type="float")
-        p.param("foot_d", 10, type="float")
-        p.param("foot_t", 3.5, type="float")
-        p.param("wall_h", 11.5, type="float")
-        p.param("wall_thickness", 3, type="float")
-        p.param("central_bore_d", 5.8, type="float")
-        p.param("screw_spacing", 11.5, type="float")
-        p.param("screw_clearance_d", 2.4, type="float")  # 2-56 clearance
+        p.param("width", 18, type="float")          # horizontal, perpendicular to body axis
+        p.param("height", 15, type="float")         # vertical
+        p.param("depth", 8.5, type="float")         # along body axis (bracket-local X)
+        p.param("bore_r", 6.0, type="float")        # body radius (12 mm body)
+        p.param("bore_y", 7.5, type="float")        # bore center elevation in bracket-local
 
-        # foot_bottom: bottom of the foot, faces -Y. Mates to sheet top.
-        p.joint("foot_bottom", origin=[0, 0, 5], z_dir=[0, -1, 0])
-        # mount_face: -X face of the wall (back, where motor attaches).
-        # wall_x = foot_w/2 - wall_thickness/2 = 9 - 1.5 = 7.5
-        # wall back face at x = 7.5 - 1.5 = 6
-        p.joint("mount_face", origin=[6, 9.25, 5], z_dir=[-1, 0, 0])
+        # foot_bottom: bottom face of the block (y=0 in bracket-local). Mates
+        # to sheet top.
+        p.joint("foot_bottom", origin=[0, 0, 0], z_dir=[0, -1, 0])
+        # bore_center: center of the through-bore. z_dir along bracket-local
+        # +X (the bore axis). Mates to motor.body_center which faces -X so
+        # the rigid mate aligns motor body axis with bore axis without a flip.
+        p.joint("bore_center", origin=[0, 7.5, 0], z_dir=[1, 0, 0])
 
         p.meta("density", 1.05)
         p.meta("material", "ABS")
-        p.meta("color", "#f5f5f5")  # MECCANIXITY product is white
+        p.meta("color", "#f5f5f5")          # MECCANIXITY product is white
         p.builder(build_meccanixity_bracket)
 
     # ── N20 worm motor (16 RPM variant, vertical-shaft layout) ────────────
@@ -206,9 +191,13 @@ with connect():
         p.param("shaft_d", 3, type="float")
         p.param("shaft_l", 10, type="float")
 
-        # gearbox_front: +X face of gearbox.
-        # x = body_l/2 + gb_l = 12.5 + 15 = 27.5
+        # gearbox_front: +X face of gearbox (kept for legacy mounts).
         p.joint("gearbox_front", origin=[27.5, 0, 0], z_dir=[1, 0, 0])
+        # body_center: middle of the body cylinder, faces -X. Mates with a
+        # wrap-around bracket whose bore_center faces +X — rigid mate aligns
+        # motor body axis with bracket bore axis without rotation. Used by
+        # the asm_window_test bracket.
+        p.joint("body_center", origin=[0, 0, 0], z_dir=[-1, 0, 0])
         # shaft_a_tip: top of upper shaft.
         # x = body_l/2 + gb_l/2 = 12.5 + 7.5 = 20
         # y = gb_h/2 + shaft_l = 6 + 10 = 16
@@ -296,8 +285,8 @@ with connect():
                joint_b="asm_window_test.INST.sheet.JOINT.bracket_anchor",
                mate_type="rigid")
         a.mate("b_motor_to_bracket",
-               joint_a="asm_window_test.INST.motor.JOINT.gearbox_front",
-               joint_b="asm_window_test.INST.bracket.JOINT.mount_face",
+               joint_a="asm_window_test.INST.motor.JOINT.body_center",
+               joint_b="asm_window_test.INST.bracket.JOINT.bore_center",
                mate_type="rigid")
         a.mate("c_lever_to_shaft",
                joint_a="asm_window_test.INST.lever.JOINT.shaft_socket",
