@@ -589,6 +589,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="mk export &lt;asm_kb&gt; &lt;fmt&gt;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interop-with-cadquery-freecad-solidworks-fusion-360" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interop with CadQuery / FreeCAD / SolidWorks / Fusion 360
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -943,6 +960,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="mk export &lt;asm_kb&gt; &lt;fmt&gt;">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interop-with-cadquery-freecad-solidworks-fusion-360" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interop with CadQuery / FreeCAD / SolidWorks / Fusion 360
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1184,27 +1218,49 @@ Double-click empty viewport to reset positions.</p>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>mk<span class="w"> </span><span class="nb">export</span><span class="w"> </span>asm_window_test<span class="w"> </span>stl
 </span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>mk<span class="w"> </span><span class="nb">export</span><span class="w"> </span>asm_window_test<span class="w"> </span>brep
 </span></code></pre></div>
+<h4 id="interop-with-cadquery-freecad-solidworks-fusion-360">Interop with CadQuery / FreeCAD / SolidWorks / Fusion 360<a class="headerlink" href="#interop-with-cadquery-freecad-solidworks-fusion-360" title="Permanent link">&para;</a></h4>
+<p>The STEP file preserves per-part colors and labels via XCAF. Any tool that
+reads STEP can consume mk-cad output:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># CadQuery</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cadquery</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cq</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">cq</span><span class="o">.</span><span class="n">importers</span><span class="o">.</span><span class="n">importStep</span><span class="p">(</span><span class="s2">&quot;project/outputs/asm_window_test.step&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a># FreeCAD: File → Import → asm_window_test.step
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a># SolidWorks / Fusion 360: File → Open → STEP file
+</span></code></pre></div>
+<p>build123d and CadQuery both wrap the same <code>OCP</code> Python bindings, so you
+can also hand a <code>TopoDS_Shape</code> directly between them without going
+through a file:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">build123d</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_step</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">b</span> <span class="o">=</span> <span class="n">import_step</span><span class="p">(</span><span class="s2">&quot;asm_window_test.step&quot;</span><span class="p">)</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cadquery</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cq</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">cq</span><span class="o">.</span><span class="n">Workplane</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">b</span><span class="o">.</span><span class="n">wrapped</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Use the file path for cross-tool / cross-machine interop; use the
+in-process path when you want to continue parametric work in CadQuery
+after generating geometry in mk-cad.</p>
 <h2 id="engineering">Engineering<a class="headerlink" href="#engineering" title="Permanent link">&para;</a></h2>
 <h3 id="mk-mass-asm_kb"><code>mk mass &lt;asm_kb&gt;</code><a class="headerlink" href="#mk-mass-asm_kb" title="Permanent link">&para;</a></h3>
 <p>Total mass, centre of mass (mm), inertia tensor (g·mm²), principal moments
 and axes. Iterates INST rows, loads BREP from cache, applies location,
 weights by <code>META.density</code> from the part KB (default 1.0 g/cm³ if absent).</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>mk<span class="w"> </span>mass<span class="w"> </span>asm_window_test
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>mk<span class="w"> </span>mass<span class="w"> </span>asm_window_test
 </span></code></pre></div>
 <p>Per-instance breakdown printed first, then the assembly totals.</p>
 <p>Units convention: mm, mm³, g/cm³, g, g·mm². See README.</p>
 <h3 id="mk-bom-asm_kb"><code>mk bom &lt;asm_kb&gt;</code><a class="headerlink" href="#mk-bom-asm_kb" title="Permanent link">&para;</a></h3>
 <p>Flat parts list grouped by <code>ref_kb</code>, sorted by quantity. The "killer
 query" — one <code>GROUP BY json_extract(properties, '$.ref_kb')</code>.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>mk<span class="w"> </span>bom<span class="w"> </span>asm_window_test
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>mk<span class="w"> </span>bom<span class="w"> </span>asm_window_test
 </span></code></pre></div>
 <h3 id="mk-measure-asm_kb-no-joints-distance-joint_a-joint_b"><code>mk measure &lt;asm_kb&gt; [--no-joints] [--distance JOINT_A JOINT_B]</code><a class="headerlink" href="#mk-measure-asm_kb-no-joints-distance-joint_a-joint_b" title="Permanent link">&para;</a></h3>
 <p>Bounding boxes (overall + per-instance, world coords), joint frames in
 world coordinates, optional Euclidean distance between two joint paths.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>mk<span class="w"> </span>measure<span class="w"> </span>asm_window_test
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>mk<span class="w"> </span>measure<span class="w"> </span>asm_window_test<span class="w"> </span>--distance<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span>asm_window_test.INST.lever.JOINT.tip<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span>asm_window_test.INST.bracket.JOINT.foot_bottom
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>mk<span class="w"> </span>measure<span class="w"> </span>asm_window_test
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>mk<span class="w"> </span>measure<span class="w"> </span>asm_window_test<span class="w"> </span>--distance<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span>asm_window_test.INST.lever.JOINT.tip<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span>asm_window_test.INST.bracket.JOINT.foot_bottom
 </span></code></pre></div>
 <p>The <code>--distance</code> flag also doubles as a mate-solver sanity check: any rigid
 mate's two joints should be 0.0000 mm apart in world coordinates.</p>
