@@ -87,6 +87,67 @@ deferred; everything else complete.
   recur. Docker Desktop's pre-existing `x86_64`-only binfmt handler is
   sufficient for our amd64 builds — no `multiarch/qemu-user-static` needed.
 
+## 2026-05-09 — v1 baseline + real-world evaluation #1: window-controller test rig
+
+First evaluation scenario: an N20 worm gearmotor on an HDPE plate driving a
+30° lever arm — a digital twin for testing automotive window-controller
+software. New manifest at `project/manifests/window_test.py`. Five parts
+(`part_hdpe_sheet`, `part_meccanixity_bracket`, `part_n20_worm_motor_16rpm`,
+`part_lever_arm`, `part_paoleju_lbracket`) plus the assembly
+`asm_window_test`. META rows on the motor carry the controller-software
+simulation contract (voltage range, RPM, encoder CPR, gear type/self-locking)
+alongside geometry params.
+
+Iterating on this rig surfaced several real bugs and v1 improvements that
+got fixed and committed in the same session:
+
+**Mate chain composition (`src/mk/mate.py`).** The solver was writing each
+inst's transform *relative to its joint_b inst* but downstream commands
+interpret `INST.location` as world-frame. Single-mate assemblies happened
+to work because joint_b defaulted to identity. Chains broke. Fix: track
+resolved transforms per-inst in `solve_assembly`, compose
+`T_a_world = T_b_world ∘ T_a_rel_to_b`. Idempotent across re-runs.
+
+**Per-part color via `META.color`.** `mk show` now reads each part's
+`META.color` and assigns it via build123d's `Shape.color = Color(...)`,
+which `export_gltf` preserves through XCAF. Two underlying build123d
+gotchas hit during implementation:
+
+- `Compound([list])` (positional) leaves the NodeMixin children empty;
+  must use `Compound(children=[...])` keyword form. Same fix applied to
+  `export.py` for STEP/STL.
+- `Color()` rejects hex strings; only accepts named colors and RGB
+  floats. Added `_parse_color` helper that handles hex (`#rgb`, `#rrggbb`),
+  RGB tuples, and named colors. Failures now warn to stderr instead of
+  being silently swallowed.
+
+**Lever-arm wedge geometry**. Original Box-cutter approach left the wedge
+on the wrong side of the disc (cutters covered finite regions, not
+half-spaces as expected). Replaced with `BuildSketch + Polyline + extrude`
+producing a triangular prism — clean, deterministic. Loses ~4% area vs a
+true sector at 30° sweep; invisible in the viewer.
+
+**Wrap-around motor mount**. Bracket redesigned from L-shape (front-face
+M2 mount) to a single-block clamp with through-bore for the motor body.
+New `motor.body_center` joint (mid-body, faces -X) replaces `gearbox_front`
+in the assembly mate. Bracket clamps around the motor body cylinder
+rather than bolting to the gearbox front.
+
+**Sheet redesigned**: 1/4" thick (was 1/2"), forest-green
+(`META.color = "#2e7d32"`).
+
+**Paoleju 2" L-bracket added** as a structural element beside the motor
+mount. Crimson red (`#dc143c`). Foam stop strips removed (kept as part
+definition for future variants). Final layout: white wrap-clamp around
+motor body, gunmetal motor, orange lever, red L-bracket flush against
+motor mount's +Z face.
+
+**Documentation site**. New `mkdocs.yml` at repo root; `docs/`
+restructured with `index.md`, `getting-started.md`, `architecture.md`,
+`cli.md`, `troubleshooting.md`, `writing-parts.md` (renamed from
+`writing_parts.md`), `v2_layers.md`. Renders to a static site for
+`mk-cad`'s docs.
+
 ## 2026-05-09 — Mop-up + viewer overlay + bracket gets a real hole
 
 **Mop-up of untested code paths (continue.md §8 ⚠️ items):**

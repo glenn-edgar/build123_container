@@ -8,15 +8,19 @@ verbatim in §2 below. Working history (what landed when) lives in
 
 ## 0. Where we are
 
-**v1 prototype complete** as of 2026-05-09. All six rev-2 phases verified
-end-to-end against `tests/fixtures/single_part.py`,
-`tests/fixtures/two_part_asm.py`, and `project/manifests/box_unit.py`.
+**v1 baselined** as of 2026-05-09. All six rev-2 phases verified end-to-end.
 Container builds clean as `mk-cad:local`; `mk init`, `mk apply`, `mk build`,
-`mk mass`, `mk bom`, `mk export step`, `mk show` all green.
+`mk mass`, `mk bom`, `mk export <step|stl|brep>`, `mk show`, `mk measure`,
+`mk part new` all green.
 
-The next phase is **real-world evaluation** (§4 below) — building 5–10
-representative parts and a small assembly to find what's missing in the API.
-v2 prioritization waits on what that evaluation surfaces.
+**Real-world evaluation #1 active**: `project/manifests/window_test.py`
+(`asm_window_test`) is an N20 worm-motor + lever + L-bracket digital twin
+for window-controller software-in-the-loop testing. Renders end-to-end
+with per-part colors. Surfaced and fixed five bugs during construction —
+see `HISTORY.md` 2026-05-09 entry. Documentation site config in
+`mkdocs.yml`; rendered docs under `docs/`.
+
+The next iteration on the evaluation drives v1.x and v2 priorities (§4).
 
 ## 1. Definition of done — v1 ✅
 
@@ -233,20 +237,39 @@ build123_container/
 
 ## 9. Known limitations / v1.x backlog
 
-Things found during mop-up that aren't in §11 v2-deferrals but should be
-addressed before evaluators hit them:
+Things found during mop-up + the §4 evaluation that should be addressed
+before they bite the next evaluator:
 
 - **SUB-nested mate paths don't parse.** `src/mk/mate.py`'s `JOINT_PATH_RE`
   matches only the flat form `<asm>.INST.<inst>.JOINT.<joint>`. Paths like
   `asm_nested.SUB.group_a.INST.inner_a1.JOINT.face` (which the
   `kb_asm.sub()` context manager generates) don't parse, so any nested
   assembly with mates breaks at `mk build` time. Fix is a small regex +
-  INST-lookup-by-path change in `mate.py` and `measure.py`. Estimated <100
-  lines including tests. Worth doing before §4 evaluation.
+  INST-lookup-by-path change in `mate.py` and `measure.py`. <100 lines.
 - **No pytest harness.** The repo has no `tests/test_*.py`. Coverage is the
   manual §1 verifier sequence. Wiring pytest needs `pip install -e .`
-  packaging config so tests can `import mk.*` cleanly; not done yet.
-- **STEP geom_hash not deterministic across builds.** `sha256(STEP-bytes)`
-  picks up timestamps in OpenCascade's STEP serializer, so the bolt's
-  hash changes between identical builds. Cosmetic for prototype (cache
-  still works); blocks v2 hash-cascade caching plans.
+  packaging config so tests can `import mk.*` cleanly.
+- **STEP geom_hash not deterministic.** `sha256(STEP-bytes)` picks up
+  timestamps in OpenCascade's STEP serializer, so even identical builds
+  produce different hashes. Cosmetic for prototype (cache still works);
+  blocks v2 hash-cascade caching plans.
+- **Mass override missing.** `META.density × volume` over-counts hollow
+  assemblies — the N20 motor renders as 43 g where real is ~10 g. Add
+  `META.mass_g_override` that supersedes the volume×density calc. ~15
+  lines in `mass.py`.
+- **Single index.html per outputs/.** `mk show <asm>` overwrites whatever
+  the previous `mk show` wrote. Multi-asm projects need separate URLs.
+  Could partition by subdirectory (`/asm_window_test/`,
+  `/asm_unit_box/`...) and have viewer serve each.
+- **No `mk part rm`.** Stale KBs from prior fixtures persist forever.
+  Need a delete command (or a `--force` re-apply mode that clears the
+  KB before rewrite).
+- **Mate solver assumes joint-b is the fixed end.** No detection of cycles,
+  no over-constraint handling, no bidirectional propagation. Works for
+  trees of mates processed in dependency order; falls over on closed
+  loops (which would be needed for kinematic chains in v2).
+- **Color rendering subtleties** (resolved during evaluation but worth
+  noting): `Compound([list])` doesn't propagate child colors — must use
+  `Compound(children=[...])` keyword form. `Color()` rejects hex strings;
+  needs the parser added in `show.py`. `Location * Shape` strips the
+  `.color` attribute; assign color *after* applying location.
