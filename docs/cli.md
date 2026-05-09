@@ -154,6 +154,38 @@ mk export asm_window_test stl
 mk export asm_window_test brep
 ```
 
+#### Interop with CadQuery / FreeCAD / SolidWorks / Fusion 360
+
+The STEP file preserves per-part colors and labels via XCAF. Any tool that
+reads STEP can consume mk-cad output:
+
+```python
+# CadQuery
+import cadquery as cq
+result = cq.importers.importStep("project/outputs/asm_window_test.step")
+```
+
+```
+# FreeCAD: File → Import → asm_window_test.step
+# SolidWorks / Fusion 360: File → Open → STEP file
+```
+
+build123d and CadQuery both wrap the same `OCP` Python bindings, so you
+can also hand a `TopoDS_Shape` directly between them without going
+through a file:
+
+```python
+from build123d import import_step
+b = import_step("asm_window_test.step")
+
+import cadquery as cq
+result = cq.Workplane(obj=b.wrapped)
+```
+
+Use the file path for cross-tool / cross-machine interop; use the
+in-process path when you want to continue parametric work in CadQuery
+after generating geometry in mk-cad.
+
 ## Engineering
 
 ### `mk mass <asm_kb>`
