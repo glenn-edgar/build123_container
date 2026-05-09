@@ -94,13 +94,44 @@ def _solve_rigid(
     return rot, translation
 
 
+def _matmul3(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
+    """3x3 matrix multiply: a @ b."""
+    return [
+        [sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)]
+        for i in range(3)
+    ]
+
+
+def _matvec3(a: list[list[float]], v: list[float]) -> list[float]:
+    """3x3 × 3-vector."""
+    return [sum(a[i][k] * v[k] for k in range(3)) for i in range(3)]
+
+
+def _identity_rot() -> list[list[float]]:
+    return [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+
+
+
+
 def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = False) -> int:
-    """Resolve all rigid mates in the assembly. Returns count processed."""
+    """Resolve all rigid mates in the assembly. Returns count processed.
+
+    Each mate produces inst_a's transform *relative to inst_b's local frame*.
+    To get absolute world transforms, we compose with inst_b's already-resolved
+    location (which reflects any prior mates in the chain). Mates are processed
+    in path order — name them with a leading dependency-prefix so joint_b's
+    inst is always positioned before joint_a's needs to be.
+    """
     mates = conn.execute(
         "SELECT name, properties FROM knowledge_base "
         "WHERE knowledge_base = ? AND label = 'MATE' ORDER BY path",
         (asm_kb,),
     ).fetchall()
+
+    # Track world transforms resolved in this pass so chain composition is
+    # idempotent across repeated `mk build` calls (we never read stale
+    # locations back from the DB).
+    resolved: dict[str, tuple[list[list[float]], list[float]]] = {}
 
     n_solved = 0
     for m in mates:
@@ -119,7 +150,20 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
         ja_origin, ja_zdir = _read_joint_frame(conn, ref_a, joint_a_name)
         jb_origin, jb_zdir = _read_joint_frame(conn, ref_b, joint_b_name)
 
-        rot, trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
+        # Rotation/translation of inst_a relative to inst_b's local frame.
+        rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
+
+        # Compose with inst_b's already-resolved world transform:
+        #   T_a_world = T_b_world ∘ T_a_rel_to_b
+        # As (R, t):  (R_b R_rel,  R_b @ t_rel + t_b)
+        # Insts not yet resolved (e.g., the chain root mated to "the sheet")
+        # are treated as identity.
+        b_rot, b_trans = resolved.get(inst_b_name, (_identity_rot(), [0.0, 0.0, 0.0]))
+        composed_rot = _matmul3(b_rot, rel_rot)
+        composed_trans = [
+            x + y for x, y in zip(_matvec3(b_rot, rel_trans), b_trans, strict=True)
+        ]
+        resolved[inst_a_name] = (composed_rot, composed_trans)
 
         a_row = conn.execute(
             "SELECT properties FROM knowledge_base "
@@ -127,7 +171,7 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
             (asm_kb, inst_a_name),
         ).fetchone()
         a_props = json.loads(a_row["properties"])
-        a_props["location"] = {"loc": trans, "rot": rot}
+        a_props["location"] = {"loc": composed_trans, "rot": composed_rot}
         conn.execute(
             "UPDATE knowledge_base SET properties = ? "
             "WHERE knowledge_base = ? AND label = 'INST' AND name = ?",
@@ -138,8 +182,8 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
                 f"  mate {m['name']}: {inst_a_name}.{joint_a_name} ↔ {inst_b_name}.{joint_b_name}"
             )
             print(
-                f"    loc=({trans[0]:.3f}, {trans[1]:.3f}, {trans[2]:.3f}); "
-                f"rot row1=({rot[0][0]:.3f}, {rot[0][1]:.3f}, {rot[0][2]:.3f})"
+                f"    world loc=({composed_trans[0]:.3f}, "
+                f"{composed_trans[1]:.3f}, {composed_trans[2]:.3f})"
             )
         n_solved += 1
 
