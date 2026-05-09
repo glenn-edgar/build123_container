@@ -11,10 +11,14 @@ def build_m6_cap(p):
 
 
 def build_simple_l(p):
-    from build123d import Box, Pos  # noqa: F401
+    from build123d import Box, Pos, Cylinder, Rotation  # noqa: F401
     base = Box(p["w"], p["t"], p["h"])
     flange = Pos(0, p["w"] / 2, -p["h"] / 2 + p["t"] / 2) * Box(p["w"], p["w"], p["t"])
-    return base + flange
+    body = base + flange
+    # Mounting hole through the base in the Y-axis direction at (x=0, z=0).
+    # Cylinder default axis is Z; rotate -90 around X so it lies along Y.
+    hole = Rotation(-90, 0, 0) * Cylinder(p["hole_d"] / 2, p["t"] * 4)
+    return body - hole
 
 
 with connect():
@@ -26,10 +30,11 @@ with connect():
         p.meta("density", 7.85)
         p.builder(build_m6_cap)
 
-    with kb_part("part_simple_l", description="Simple L-bracket") as p:
+    with kb_part("part_simple_l", description="Simple L-bracket with mount hole") as p:
         p.param("w", 30, type="float")
         p.param("h", 30, type="float")
         p.param("t", 3, type="float")
+        p.param("hole_d", 7, type="float")
         p.joint("mount_face", origin=[0, 15, 0], z_dir=[0, 1, 0])
         p.joint("hole_top", origin=[0, -15, 0], z_dir=[0, 1, 0])
         p.meta("density", 7.85)
