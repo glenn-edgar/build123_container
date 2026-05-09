@@ -8,18 +8,19 @@ verbatim in §2 below. Working history (what landed when) lives in
 
 ## 0. Where we are
 
-Phases 1–4 and 6 of the rev-2 phase plan are complete and verified end-to-end
-against `tests/fixtures/single_part.py`, `tests/fixtures/two_part_asm.py`, and
-the Phase-4 sanity fixture `project/manifests/box_unit.py`. Container builds
-clean as `mk-cad:local`; `mk init`, `mk apply`, `mk build`, `mk mass`,
-`mk bom`, `mk export step` all green.
+**v1 prototype complete** as of 2026-05-09. All six rev-2 phases verified
+end-to-end against `tests/fixtures/single_part.py`,
+`tests/fixtures/two_part_asm.py`, and `project/manifests/box_unit.py`.
+Container builds clean as `mk-cad:local`; `mk init`, `mk apply`, `mk build`,
+`mk mass`, `mk bom`, `mk export step`, `mk show` all green.
 
-**The single remaining piece for v1** is Phase 5 — `mk show` + the yacv
-viewer service smoke test.
+The next phase is **real-world evaluation** (§4 below) — building 5–10
+representative parts and a small assembly to find what's missing in the API.
+v2 prioritization waits on what that evaluation surfaces.
 
-## 1. Definition of done — v1
+## 1. Definition of done — v1 ✅
 
-The spec §14 sequence must run end-to-end on a fresh laptop with only Docker
+The spec §14 sequence runs end-to-end on a fresh laptop with only Docker
 installed:
 
 ```
@@ -30,24 +31,10 @@ docker compose run --rm cad build asm_demo
 docker compose run --rm cad mass asm_demo
 docker compose run --rm cad bom asm_demo
 docker compose run --rm cad export asm_demo step
-docker compose run --rm cad show asm_demo            # ← only this is unimplemented
+docker compose run --rm cad show asm_demo
 ```
 
-Every command except `mk show` is currently green. Closing v1 means:
-
-1. **Implement `src/mk/commands/show.py`**. Walk INST rows, load BREP from the
-   `geometry` table, apply `INST.location` via `mk.transform`, build a
-   `Compound`, and write glTF to `/project/outputs/<asm>.gltf`. Use whatever
-   build123d exposes (`export_gltf` or equivalent — verify the actual API at
-   implementation time; the rev-2 spec note about an HTTP push is wrong, the
-   viewer is volume-mount-driven, see §3 below).
-2. **Bring up the viewer service** (`docker compose up -d viewer`) and confirm
-   it serves at `localhost:32323` and hot-reloads when `mk show` rewrites the
-   glTF.
-3. **README touch-up** documenting the show workflow.
-
-The viewer service is already wired in `compose.yaml` (no Compose changes
-needed). Estimated work: ~30 lines + a smoke test.
+…and the model renders at `localhost:32323`. Verified 2026-05-09.
 
 ## 2. Architectural decisions (locked — carried forward from rev 2)
 
@@ -80,39 +67,43 @@ For the long-form rationale behind each, see the rev-2 archive — captured in
 this file's history (`HISTORY.md`) and reproduced in `docs/spec_r2.md` if you
 want the full text.
 
-## 3. Phase 5 implementation notes
+## 3. Phase 5 implementation — what actually shipped
 
-The rev-2 spec §8 mentioned HTTP push to yacv — that was wrong and was
-corrected in rev 2 §2 ("Viewer" decision, verified Nov 2026). Current truth:
+The rev-2 spec assumed `yacv-server --watch /project/outputs/` would render
+glTF the moment we wrote it. Discovery during Phase 5 implementation
+(2026-05-09): **yacv 0.9.4 — the version in `:with_yacv` — has no CLI**. No
+`yacv-server` binary, no `__main__.py`, no console-scripts entry point. The
+package is a Python *library* meant to be embedded in a script that creates
+shapes and pushes them through `yacv.show_*`.
 
-- yacv has **no standalone Docker image** and **no HTTP push API**. It ships
-  bundled into `ghcr.io/derhuerst/build123d:with_yacv`.
-- Both `cad` and `viewer` services use the *same* locally-built `mk-cad:local`
-  image; they differ only in entrypoint. The `viewer` service runs
-  `yacv-server --watch /project/outputs`.
-- `mk show <asm>` writes glTF to `/project/outputs/<asm>.gltf`. yacv-server
-  hot-reloads it. Browser at `localhost:32323`.
+Resolution: dropped yacv entirely from the viewer path. The `viewer` service
+now runs `python -m http.server 32323 --directory /project/outputs`, and
+`mk show` emits a tiny `index.html` next to the glTF that loads it via
+Google's `<model-viewer>` web component (CDN-loaded; needs internet on first
+visit). User refreshes the browser after each `mk show` rerun — there's no
+auto-reload in this prototype.
 
-Implementation skeleton (~30 lines):
+What `mk show <asm>` actually does:
 
-```python
-# src/mk/commands/show.py
-def run(args):
-    conn = open_db(args.db)
-    rows = ... # SELECT INST rows like in mk build / mk export
-    shapes = []
-    for r in rows:
-        # load BREP from geometry by geom_hash; apply build123d_location.
-        ...
-    compound = Compound(shapes)
-    out = Path(args.outdir) / f"{args.asm_kb}.gltf"
-    # build123d API: verify whether it's `export_gltf` or `compound.export_gltf(...)`
-    # at implementation time. Same pattern as src/mk/commands/export.py.
-    print(f"wrote {out}; viewer at http://localhost:32323")
-```
+- Reads INST rows for the assembly, loads each BREP from the `geometry`
+  cache, applies the solved `location` (translation + rotation) via
+  `mk.transform.build123d_location`, builds a `Compound`, calls
+  `build123d.export_gltf(compound, path)`. Defaults to text glTF (`.gltf` +
+  separate `.bin` buffer); `--binary` writes a single `.glb`.
+- Also writes `index.html` referencing the glTF. The viewer service serves
+  both files at `:32323`.
 
-No new schema. No new vendored dependency. Just a new command file plus
-registration in `__main__.py`.
+Trade-offs accepted for v1:
+- No camera-controls richness beyond what `<model-viewer>` provides
+  (orbit/zoom/auto-rotate). Section views, exploded views, hierarchy panel,
+  bookmark cameras: not supported.
+- No live reload. Manual refresh after each rerun.
+- glTF library loaded from a CDN. Air-gapped deployments would need to
+  vendor `model-viewer.min.js` locally.
+
+If any of these become friction during the §4 evaluation, revisit. The
+embedded-yacv path is still available (option 2 from the original Phase-5
+discussion) — it's just more code to write than was budgeted for v1.
 
 ## 4. After v1 — evaluation phase
 
@@ -191,7 +182,7 @@ build123_container/
 │       ├── export.py           ✅ (step verified; stl/brep code paths exist)
 │       ├── mass.py             ✅
 │       ├── bom.py              ✅
-│       └── show.py             ❌ Phase 5
+│       └── show.py             ✅
 ├── tests/fixtures/
 │   ├── single_part.py          Phase 2 verify
 │   ├── two_part_asm.py         Phase 2/6 verify
@@ -230,7 +221,7 @@ build123_container/
 | Phase 3: `mk build` + `mk export step`                          | ✅     |
 | Phase 4: `Box(10,10,10)` density 1 → mass 1.000 g exact         | ✅     |
 | Phase 4: `mk bom asm_demo` returns expected counts              | ✅     |
-| Phase 5: `mk show asm_demo` model in browser                    | ❌     |
+| Phase 5: `mk show asm_demo` model in browser                    | ✅ via static-server + model-viewer (yacv CLI doesn't exist upstream) |
 | Phase 6: bolt sits in bracket hole after `mk build`             | ✅     |
 | `mk export <asm> stl` end-to-end                                | ⚠️ untested |
 | `mk export <asm> brep` end-to-end                               | ⚠️ untested |

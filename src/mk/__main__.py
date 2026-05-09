@@ -15,6 +15,7 @@ from mk.commands import export as cmd_export
 from mk.commands import init as cmd_init
 from mk.commands import mass as cmd_mass
 from mk.commands import part as cmd_part
+from mk.commands import show as cmd_show
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_export.add_parser(subparsers)
     cmd_mass.add_parser(subparsers)
     cmd_bom.add_parser(subparsers)
+    cmd_show.add_parser(subparsers)
     return parser
 
 

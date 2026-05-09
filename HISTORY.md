@@ -87,6 +87,34 @@ deferred; everything else complete.
   recur. Docker Desktop's pre-existing `x86_64`-only binfmt handler is
   sufficient for our amd64 builds — no `multiarch/qemu-user-static` needed.
 
+## 2026-05-09 — Phase 5 (mk show) — v1 complete ✅
+
+`src/mk/commands/show.py` written. Loads BREP from cache, applies solved
+locations, calls `build123d.export_gltf(compound, path)`. Also emits a small
+`index.html` next to the glTF that loads it via Google's `<model-viewer>` web
+component.
+
+**Upstream surprise**: yacv 0.9.4 (the version in the `:with_yacv` upstream
+tag) has no CLI. No `yacv-server` binary, no `__main__.py`, no
+console-scripts entry point. The rev-2 plan to run
+`yacv-server --watch /project/outputs/` was based on an API that doesn't
+exist. Confirmed by inspecting `pip show yacv-server` and the package layout
+inside the image.
+
+Resolution: dropped yacv from the viewer path. `compose.yaml`'s `viewer`
+service entrypoint changed to
+`python -m http.server 32323 --directory /project/outputs`. `mk show`'s
+emitted `index.html` does the rendering via `<model-viewer>` (CDN-loaded).
+Trade-offs documented in `continue.md` §3 — no auto-reload, no rich
+section/exploded views; revisit if real-world use surfaces friction.
+
+End-to-end smoke test passes: container rebuilt, `mk show asm_demo` writes
+a 5917-byte glTF + 31 KB binary buffer + 897-byte index.html; viewer
+container serves both at `:32323` with HTTP 200.
+
+The spec §14 "definition of done" sequence now runs end-to-end. v1 is
+closed.
+
 ## 2026-05-08 — Licensing decision
 
 Relicensed from rev-2's planned LGPL-2.1 + Python-aware exception to **Mozilla

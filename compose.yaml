@@ -20,10 +20,13 @@ services:
     depends_on: [cad]                      # ensures the image is built
     volumes:
       - ${PROJECT_DIR:-./project}:/project
-    # yacv-server CLI args TBD at Phase 5; placeholder below.
-    entrypoint: ["yacv-server", "--watch", "/project/outputs"]
+    # Phase 5 finding: yacv 0.9.4 ships as a Python library with no CLI; the
+    # rev-2 spec's `yacv-server --watch` doesn't exist upstream. Static
+    # http.server + <model-viewer> in mk show's emitted index.html does the
+    # job for a prototype. See continue.md §3.
+    entrypoint: ["python", "-m", "http.server", "32323", "--directory", "/project/outputs"]
     ports:
-      - "32323:32323"                      # yacv default port
+      - "32323:32323"
     networks: [internal]
 
 networks:

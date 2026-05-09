@@ -6,9 +6,23 @@ Licensed under the [Mozilla Public License 2.0](LICENSE).
 
 ## Status
 
-Phases 1–4, 6 done: container + DB, manifest apply, builder + STEP export, mass
-properties + BOM, rigid mate solver. Verified end-to-end against the fixtures in
-`tests/fixtures/`. Phase 5 (yacv viewer) is the only spec phase remaining.
+v1 prototype complete (2026-05-09). All six phases of the original spec
+verified end-to-end: container + DB, manifest apply, builder + STEP export,
+mass properties + BOM, rigid mate solver, and viewer.
+
+## Viewer
+
+```bash
+docker compose up -d viewer       # starts the static glTF server on :32323
+docker compose run --rm cad show asm_demo
+# now refresh http://localhost:32323
+```
+
+`mk show` writes the glTF and a small `index.html` to `/project/outputs/`.
+The viewer service is just `python -m http.server` serving that directory;
+the HTML loads the glTF via Google's `<model-viewer>` web component (needs
+internet on first visit). Refresh the browser after each `mk show` rerun —
+no auto-reload in this prototype.
 
 ## Units
 
