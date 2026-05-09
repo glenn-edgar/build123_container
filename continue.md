@@ -142,6 +142,14 @@ What's *out* of v2.0: FEA, Postgres, sandboxing, codegen, hash cascade,
 diff apply, portable surface syntax, view pipeline beyond drawings. See
 `docs/v2_plan.md` "Out of scope" section.
 
+**CadQuery interop** (decided 2026-05-09): covered today via STEP/BREP
+file exchange. STEP carries XCAF colors and labels which CadQuery's
+`importers.importStep()` reads; in-process TopoDS_Shape handoff works
+because both libraries wrap the same OCP bindings. Engine-pluggability
+(CadQuery as an alternative builder engine inside mk-cad) remains
+deferred to v3 — STEP-based interop is sufficient. See
+`docs/cli.md` → "Interop with CadQuery / FreeCAD / ..." for the recipe.
+
 ## 5b. v2 sketch material (older notes)
 
 The rev-2 §11 v2-deferral list is the long form. Specific design notes
