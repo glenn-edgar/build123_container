@@ -223,11 +223,30 @@ build123_container/
 | Phase 4: `mk bom asm_demo` returns expected counts              | ✅     |
 | Phase 5: `mk show asm_demo` model in browser                    | ✅ via static-server + model-viewer (yacv CLI doesn't exist upstream) |
 | Phase 6: bolt sits in bracket hole after `mk build`             | ✅     |
-| `mk export <asm> stl` end-to-end                                | ⚠️ untested |
-| `mk export <asm> brep` end-to-end                               | ⚠️ untested |
-| `tests/fixtures/nested_asm.py` apply                            | ⚠️ untested |
-| `pytest` test suite                                             | ⚠️ none written |
+| `mk export <asm> stl` end-to-end                                | ✅     |
+| `mk export <asm> brep` end-to-end                               | ✅     |
+| `tests/fixtures/nested_asm.py` apply                            | ✅ — SUB rows generate correct ltree paths |
+| `pytest` test suite                                             | ⚠️ none written; needs packaging-config setup |
+| `mk measure` (CLI bbox/joints/distance)                         | ✅     |
+| Viewer overlay (sidebar + 3D hotspots)                          | ✅     |
+| build123d CSG support (booleans, holes)                         | ✅ — bracket fixture demonstrates `body - hole` |
 
-The ⚠️ items are inside completed phases and don't block v1 done. Worth
-mopping up before declaring v1 complete; could also wait for the §4
-evaluation phase to drive what tests actually matter.
+## 9. Known limitations / v1.x backlog
+
+Things found during mop-up that aren't in §11 v2-deferrals but should be
+addressed before evaluators hit them:
+
+- **SUB-nested mate paths don't parse.** `src/mk/mate.py`'s `JOINT_PATH_RE`
+  matches only the flat form `<asm>.INST.<inst>.JOINT.<joint>`. Paths like
+  `asm_nested.SUB.group_a.INST.inner_a1.JOINT.face` (which the
+  `kb_asm.sub()` context manager generates) don't parse, so any nested
+  assembly with mates breaks at `mk build` time. Fix is a small regex +
+  INST-lookup-by-path change in `mate.py` and `measure.py`. Estimated <100
+  lines including tests. Worth doing before §4 evaluation.
+- **No pytest harness.** The repo has no `tests/test_*.py`. Coverage is the
+  manual §1 verifier sequence. Wiring pytest needs `pip install -e .`
+  packaging config so tests can `import mk.*` cleanly; not done yet.
+- **STEP geom_hash not deterministic across builds.** `sha256(STEP-bytes)`
+  picks up timestamps in OpenCascade's STEP serializer, so the bolt's
+  hash changes between identical builds. Cosmetic for prototype (cache
+  still works); blocks v2 hash-cascade caching plans.

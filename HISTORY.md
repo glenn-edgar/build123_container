@@ -87,6 +87,44 @@ deferred; everything else complete.
   recur. Docker Desktop's pre-existing `x86_64`-only binfmt handler is
   sufficient for our amd64 builds — no `multiarch/qemu-user-static` needed.
 
+## 2026-05-09 — Mop-up + viewer overlay + bracket gets a real hole
+
+**Mop-up of untested code paths (continue.md §8 ⚠️ items):**
+- `mk export asm_demo stl` — works, 76 KB output.
+- `mk export asm_demo brep` — works, 9.7 KB output.
+- `mk apply nested_asm.py` — works; SUB scope produces correctly nested
+  ltree paths (`asm_nested.SUB.group_a.INST.inner_a1`, etc.).
+- pytest harness still unwired — needs proper packaging setup (`pip install
+  -e .`); deferred.
+
+**New CLI: `mk measure`.** Bounding boxes (overall + per-instance), joint
+frames in world coords, and `--distance <jpath_a> <jpath_b>` for arbitrary
+joint-to-joint measurement. Cross-checks against the manifest exactly.
+Confirms the mate solver's coincidence guarantee (any rigid mate's two
+joints should be 0.0 mm apart).
+
+**Viewer overlay.** `mk show` now embeds:
+- A measurement sidebar panel (top-right) with overall bbox extent, mass,
+  CoM, instance bboxes, joint world-coords. Frozen at `mk show` time;
+  refresh browser after each rerun.
+- 3D hotspots pinned at every joint origin via `<model-viewer>`'s slot
+  mechanism. Hover a dot to see the joint label.
+
+**CSG demo.** Updated the simple_l bracket fixture to actually drill the
+hole that its `hole_top` joint always implied. Builder uses
+`body - (Rotation(-90,0,0) * Cylinder(d/2, h))`. Proves that the existing
+builder pipeline runs arbitrary build123d expressions — no mk-cad-side
+changes needed for boolean modeling. Bracket BREP changes
+(`e1247b55fd62` → `6d7ebe6d08d9`); glTF grew 5917 → 6424 bytes from the
+hole's curved surfaces.
+
+**Limitation discovered during mop-up: SUB-nested mate paths.** `mate.py`'s
+joint-path regex assumes flat `<asm>.INST.<inst>.JOINT.<joint>`. Nested
+paths from SUB scopes (`<asm>.SUB.<sub>.INST.<inst>.JOINT.<joint>`) don't
+parse. So nested assemblies with mates break at `mk build`. Logged as a
+v1.x backlog item in continue.md §9; small regex + lookup fix worth doing
+before §4 evaluators try it.
+
 ## 2026-05-09 — Phase 5 (mk show) — v1 complete ✅
 
 `src/mk/commands/show.py` written. Loads BREP from cache, applies solved
