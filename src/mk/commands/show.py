@@ -252,6 +252,14 @@ def _index_html(
         else ""
     )
 
+    stats_table = (
+        f"<tr><th>bbox extent (mm)</th>"
+        f"<td>{overall_extent[0]:.2f} × {overall_extent[1]:.2f} × {overall_extent[2]:.2f}</td></tr>"
+        f"<tr><th>bbox min</th><td>{fmt3(overall_min)}</td></tr>"
+        f"<tr><th>bbox max</th><td>{fmt3(overall_max)}</td></tr>"
+        f"{mass_line}"
+    )
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -265,22 +273,38 @@ def _index_html(
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
                 font-size: 12px; }}
   model-viewer {{ width: 100%; height: 100%; --poster-color: #1e1e1e; }}
-  .panel {{ position: fixed; top: 12px; right: 12px; max-width: 460px;
+
+  .panel {{ position: fixed; min-width: 200px; max-width: 520px;
             background: rgba(30,30,30,0.92); border: 1px solid #444;
-            padding: 10px 14px; border-radius: 4px;
-            max-height: calc(100vh - 24px); overflow-y: auto; }}
-  .panel h2 {{ margin: 0 0 4px 0; font-size: 13px; color: #fff;
-               border-bottom: 1px solid #444; padding-bottom: 4px; }}
-  .panel h3 {{ margin: 10px 0 4px 0; font-size: 11px; color: #aaa;
-               text-transform: uppercase; letter-spacing: 0.05em; }}
+            border-radius: 4px; max-height: calc(100vh - 24px);
+            display: flex; flex-direction: column;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4); }}
+  .panel.dragging {{ opacity: 0.85; box-shadow: 0 4px 16px rgba(0,0,0,0.6); }}
+  .panel-header {{ display: flex; align-items: center; padding: 4px 8px;
+                   background: rgba(255,255,255,0.05);
+                   border-bottom: 1px solid #444;
+                   border-radius: 4px 4px 0 0;
+                   cursor: grab; user-select: none; }}
+  .panel.dragging .panel-header {{ cursor: grabbing; }}
+  .panel-title {{ flex: 1; font-size: 12px; color: #fff; font-weight: 600; }}
+  .panel-collapse {{ background: transparent; border: 1px solid #555;
+                     color: #ddd; cursor: pointer; padding: 0 6px;
+                     font-size: 12px; font-family: inherit; border-radius: 2px;
+                     line-height: 1.2; }}
+  .panel-collapse:hover {{ background: rgba(255,255,255,0.1); }}
+  .panel-body {{ overflow-y: auto; padding: 6px 10px 10px; }}
+  .panel.collapsed .panel-body {{ display: none; }}
+
   .panel table {{ border-collapse: collapse; width: 100%; }}
   .panel th, .panel td {{ padding: 2px 6px; text-align: left;
                           font-size: 11px; vertical-align: top; }}
   .panel th {{ color: #aaa; font-weight: normal; white-space: nowrap; }}
   .panel td {{ color: #ddd; }}
   .panel tr:nth-child(even) td {{ background: rgba(255,255,255,0.03); }}
+
   .footer {{ position: fixed; bottom: 8px; left: 12px;
              font-size: 10px; opacity: 0.5; pointer-events: none; }}
+
   .Hotspot {{ background: #ff9028; border: 1px solid #fff;
               border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.6);
               cursor: pointer; height: 14px; width: 14px;
@@ -301,30 +325,124 @@ def _index_html(
 {hotspot_html}
 </model-viewer>
 
-<div class="panel">
-  <h2>{asm_kb}</h2>
-  <table>
-    <tr><th>bbox extent (mm)</th>
-        <td>{overall_extent[0]:.2f} × {overall_extent[1]:.2f} × {overall_extent[2]:.2f}</td></tr>
-    <tr><th>bbox min</th><td>{fmt3(overall_min)}</td></tr>
-    <tr><th>bbox max</th><td>{fmt3(overall_max)}</td></tr>
-    {mass_line}
-  </table>
-
-  <h3>instances ({len(instances)})</h3>
-  <table>
-    <tr><th>name</th><th>ref_kb</th><th>min</th><th>max</th></tr>
-    {inst_rows_html}
-  </table>
-
-  <h3>joints ({len(joints)}) — hover dots on model</h3>
-  <table>
-    <tr><th>label</th><th>world (mm)</th></tr>
-    {joint_rows_html}
-  </table>
+<div class="panel" data-panel-id="stats" style="top: 12px; right: 12px;">
+  <div class="panel-header">
+    <span class="panel-title">{asm_kb} — stats</span>
+    <button class="panel-collapse" title="collapse">−</button>
+  </div>
+  <div class="panel-body"><table>{stats_table}</table></div>
 </div>
 
-<div class="footer">refresh after `mk show` to reload</div>
+<div class="panel" data-panel-id="instances" style="top: 200px; right: 12px;">
+  <div class="panel-header">
+    <span class="panel-title">instances ({len(instances)})</span>
+    <button class="panel-collapse" title="collapse">−</button>
+  </div>
+  <div class="panel-body">
+    <table>
+      <tr><th>name</th><th>ref_kb</th><th>min</th><th>max</th></tr>
+      {inst_rows_html}
+    </table>
+  </div>
+</div>
+
+<div class="panel" data-panel-id="joints" style="top: 380px; right: 12px;">
+  <div class="panel-header">
+    <span class="panel-title">joints ({len(joints)}) — hover dots on model</span>
+    <button class="panel-collapse" title="collapse">−</button>
+  </div>
+  <div class="panel-body">
+    <table>
+      <tr><th>label</th><th>world (mm)</th></tr>
+      {joint_rows_html}
+    </table>
+  </div>
+</div>
+
+<div class="footer">refresh after `mk show` to reload — drag panel headers, click − to collapse</div>
+
+<script>
+(function() {{
+  // Per-panel position + collapsed state, persisted in localStorage so the
+  // user's layout survives `mk show` reruns. Keyed by assembly so different
+  // assemblies remember independently.
+  const KEY = (id) => `mkcad:{asm_kb}:panel:` + id;
+
+  document.querySelectorAll('.panel').forEach(panel => {{
+    const id = panel.dataset.panelId;
+    const collapseBtn = panel.querySelector('.panel-collapse');
+    const header = panel.querySelector('.panel-header');
+
+    const restore = () => {{
+      try {{
+        const saved = JSON.parse(localStorage.getItem(KEY(id)) || 'null');
+        if (!saved) return;
+        if (typeof saved.x === 'number' && typeof saved.y === 'number') {{
+          panel.style.left = saved.x + 'px';
+          panel.style.top = saved.y + 'px';
+          panel.style.right = 'auto';
+        }}
+        if (saved.collapsed) {{
+          panel.classList.add('collapsed');
+          collapseBtn.textContent = '+';
+        }}
+      }} catch (e) {{}}
+    }};
+
+    const save = () => {{
+      const r = panel.getBoundingClientRect();
+      localStorage.setItem(KEY(id), JSON.stringify({{
+        x: Math.max(0, r.left), y: Math.max(0, r.top),
+        collapsed: panel.classList.contains('collapsed'),
+      }}));
+    }};
+
+    restore();
+
+    header.addEventListener('pointerdown', e => {{
+      if (e.target === collapseBtn) return;
+      e.preventDefault();
+      header.setPointerCapture(e.pointerId);
+      const rect = panel.getBoundingClientRect();
+      const dx = e.clientX - rect.left;
+      const dy = e.clientY - rect.top;
+      panel.classList.add('dragging');
+      panel.style.right = 'auto';
+
+      const onMove = ev => {{
+        const x = Math.max(0, Math.min(window.innerWidth - 40, ev.clientX - dx));
+        const y = Math.max(0, Math.min(window.innerHeight - 30, ev.clientY - dy));
+        panel.style.left = x + 'px';
+        panel.style.top = y + 'px';
+      }};
+      const onUp = () => {{
+        panel.classList.remove('dragging');
+        header.removeEventListener('pointermove', onMove);
+        header.removeEventListener('pointerup', onUp);
+        save();
+      }};
+      header.addEventListener('pointermove', onMove);
+      header.addEventListener('pointerup', onUp);
+    }});
+
+    collapseBtn.addEventListener('click', () => {{
+      panel.classList.toggle('collapsed');
+      collapseBtn.textContent = panel.classList.contains('collapsed') ? '+' : '−';
+      save();
+    }});
+  }});
+
+  // Convenience: double-click an empty area of the page to reset all panel
+  // positions for this assembly.
+  document.body.addEventListener('dblclick', e => {{
+    if (e.target !== document.body) return;
+    document.querySelectorAll('.panel').forEach(panel => {{
+      localStorage.removeItem(KEY(panel.dataset.panelId));
+    }});
+    location.reload();
+  }});
+}})();
+</script>
 </body>
 </html>
 """

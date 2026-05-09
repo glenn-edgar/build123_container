@@ -1,16 +1,19 @@
 # SPDX-License-Identifier: MPL-2.0
-"""mk part list / mk part show."""
+"""mk part list / mk part show / mk part new."""
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from mk.db import DEFAULT_DB_PATH, open_db
 
+DEFAULT_MANIFESTS_DIR = "/project/manifests"
+
 
 def add_parser(subparsers) -> None:
-    part = subparsers.add_parser("part", help="Part inspection.")
+    part = subparsers.add_parser("part", help="Part inspection / scaffolding.")
     part_sub = part.add_subparsers(dest="part_cmd", required=True)
 
     lst = part_sub.add_parser("list", help="List part KBs.")
@@ -22,6 +25,25 @@ def add_parser(subparsers) -> None:
     show.add_argument("kb_name")
     show.add_argument("--db", default=DEFAULT_DB_PATH)
     show.set_defaults(func=run_show)
+
+    new = part_sub.add_parser(
+        "new", help="Scaffold a starter manifest .py for a new part.",
+    )
+    new.add_argument("name", help="part kb_name (will be prefixed with 'part_' if missing)")
+    new.add_argument(
+        "--outdir", default=DEFAULT_MANIFESTS_DIR,
+        help="directory to write the manifest into",
+    )
+    new.add_argument(
+        "--template", default="block",
+        choices=["block", "cylinder", "plate_with_hole", "blank"],
+        help="starter template",
+    )
+    new.add_argument(
+        "--force", action="store_true",
+        help="overwrite an existing manifest file",
+    )
+    new.set_defaults(func=run_new)
 
 
 def run_list(args: argparse.Namespace) -> int:
@@ -74,4 +96,84 @@ def run_show(args: argparse.Namespace) -> int:
         else:
             print(f"  {r['label']}.{r['name']}: {props}")
     conn.close()
+    return 0
+
+
+_TEMPLATES = {
+    "block": '''def build_{stem}(p):
+    from build123d import Box  # noqa: F401
+    return Box(p["w"], p["d"], p["h"])
+''',
+    "cylinder": '''def build_{stem}(p):
+    from build123d import Cylinder  # noqa: F401
+    return Cylinder(p["d"] / 2, p["h"])
+''',
+    "plate_with_hole": '''def build_{stem}(p):
+    from build123d import Box, Cylinder  # noqa: F401
+    plate = Box(p["w"], p["d"], p["t"])
+    hole = Cylinder(p["hole_d"] / 2, p["t"] * 4)
+    return plate - hole
+''',
+    "blank": '''def build_{stem}(p):
+    from build123d import Box  # noqa: F401
+    # Replace this with the actual geometry.
+    return Box(10, 10, 10)
+''',
+}
+
+_PARAMS = {
+    "block":            [("w", 30, "float"), ("d", 30, "float"), ("h", 10, "float")],
+    "cylinder":         [("d", 20, "float"), ("h", 30, "float")],
+    "plate_with_hole":  [("w", 50, "float"), ("d", 50, "float"),
+                         ("t", 5, "float"), ("hole_d", 6, "float")],
+    "blank":            [],
+}
+
+
+def run_new(args: argparse.Namespace) -> int:
+    raw = args.name
+    kb_name = raw if raw.startswith("part_") else f"part_{raw}"
+    stem = kb_name.removeprefix("part_")
+    out_dir = Path(args.outdir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{stem}.py"
+    if out_path.exists() and not args.force:
+        print(f"refusing to overwrite {out_path} (use --force)", file=sys.stderr)
+        return 1
+
+    builder_src = _TEMPLATES[args.template].format(stem=stem)
+    param_lines = "\n".join(
+        f'        p.param({n!r}, {v}, type={t!r})' for n, v, t in _PARAMS[args.template]
+    ) or "        # p.param('w', 30, type='float')"
+
+    content = f'''# SPDX-License-Identifier: MPL-2.0
+"""{kb_name} — scaffolded by `mk part new` (template: {args.template}).
+
+Edit `build_{stem}` to define the geometry, adjust params/joints/meta,
+then run:
+
+    mk apply /project/manifests/{stem}.py
+    mk part show {kb_name}
+"""
+from mk.kb import connect, kb_part
+
+
+{builder_src}
+
+with connect():
+    with kb_part({kb_name!r}, description="TODO: describe {stem}") as p:
+{param_lines}
+        # Joints define named coordinate frames for mating. Optional.
+        # p.joint("top",    origin=[0, 0, 0], z_dir=[0, 0,  1])
+        # p.joint("bottom", origin=[0, 0, 0], z_dir=[0, 0, -1])
+
+        # Material / density. density is g/cm^3; mk mass uses it directly.
+        p.meta("density", 7.85)
+        p.meta("material", "steel")
+
+        p.builder(build_{stem})
+'''
+    out_path.write_text(content)
+    print(f"wrote {out_path}")
+    print(f"next: mk apply {out_path}  &&  mk part show {kb_name}")
     return 0
