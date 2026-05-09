@@ -159,10 +159,14 @@ with connect():
         # Sheet top is at y=+t/2=+3.175. Bracket sits centered around the
         # bore-target world position (x=50). Sheet anchor matches.
         p.joint("bracket_anchor", origin=[50, 3.175, 0], z_dir=[0, 1, 0])
-        # L-bracket beside the gearbox. World Z chosen so the L's vertical
-        # arm sits past the lever's tip-arc radius (20 mm) — keeps the
-        # >180°-rotation path clear.
-        p.joint("lbracket_anchor", origin=[70, 3.175, 50], z_dir=[0, 1, 0])
+        # L-bracket flush with the motor mount on the +Z side: vertical arm
+        # touches the wrap-clamp's +Z face at world z=9. Anchor at z = 9 +
+        # foot_length/2 = 9 + 25.4 = 34.4 puts the foot center where it
+        # belongs, with the vertical arm landing at z=9. X aligned with
+        # the motor mount center (x=50). Note: at this position the lever
+        # tip will hit the L-bracket at ~26.7° rotation (sin⁻¹(9/20)),
+        # so >180° rotation no longer applies — flushness over reach.
+        p.joint("lbracket_anchor", origin=[50, 3.175, 34.4], z_dir=[0, 1, 0])
 
         p.meta("density", 0.95)
         p.meta("material", "HDPE")
