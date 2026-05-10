@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from mk.builder import get_part_defaults, run_builder
-from mk.db import DEFAULT_DB_PATH, open_db
+from mk.db import DEFAULT_DB_PATH, kb_exists, open_db
 from mk.geometry import geometry_hash, shape_to_brep_bytes, shape_to_step_bytes
 from mk.mate import solve_assembly
 
@@ -66,6 +66,11 @@ def _load_state(args: argparse.Namespace) -> dict[str, float]:
 def run(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
 
+    if not kb_exists(conn, args.asm_kb):
+        print(f"no such assembly: {args.asm_kb}", file=sys.stderr)
+        conn.close()
+        return 1
+
     state = _load_state(args)
     if state:
         print(f"loaded state.json: {len(state)} mate override(s)")
@@ -81,7 +86,7 @@ def run(args: argparse.Namespace) -> int:
     ).fetchall()
 
     if not rows:
-        print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
+        print(f"{args.asm_kb} has no INST rows", file=sys.stderr)
         return 1
 
     n_built = 0

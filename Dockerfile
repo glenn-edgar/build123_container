@@ -23,4 +23,8 @@ RUN pip install --no-cache-dir /tmp/build && rm -rf /tmp/build
 
 USER 1000
 WORKDIR /project
+# ezdxf scans $HOME/.cache on import for a cache directory. UID 1000 can't
+# write to / (the default $HOME when unset), so ezdxf prints a warning on
+# every mk run. /tmp is world-writable inside the container.
+ENV HOME=/tmp
 ENTRYPOINT ["mk"]

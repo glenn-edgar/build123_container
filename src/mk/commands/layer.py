@@ -112,7 +112,11 @@ def run_ls(args: argparse.Namespace) -> int:
         count = counts.get(name, 0)
         color = props.get("color") or "-"
         desc = props.get("description") or ""
-        print(f"  {name:<{name_w}}  {state}  {count:>5}  {color:<7}  {desc}")
+        # rstrip drops the trailing whitespace when description is empty
+        # (the f-string padding leaves the description column with a
+        # space-padded "" otherwise).
+        row = f"  {name:<{name_w}}  {state}  {count:>5}  {color:<7}  {desc}"
+        print(row.rstrip())
     conn.close()
     return 0
 

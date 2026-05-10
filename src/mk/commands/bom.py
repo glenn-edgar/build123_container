@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from mk.db import DEFAULT_DB_PATH, open_db
+from mk.db import DEFAULT_DB_PATH, kb_exists, open_db
 
 
 def add_parser(subparsers) -> None:
@@ -21,7 +21,13 @@ def add_parser(subparsers) -> None:
 
 def run(args: argparse.Namespace) -> int:
     import json
+    import sys
     conn = open_db(args.db)
+
+    if not kb_exists(conn, args.asm_kb):
+        print(f"no such assembly: {args.asm_kb}", file=sys.stderr)
+        conn.close()
+        return 1
 
     inst_rows = conn.execute(
         "SELECT path, properties FROM knowledge_base "
@@ -38,7 +44,7 @@ def run(args: argparse.Namespace) -> int:
     conn.close()
 
     if not inst_rows:
-        print(f"no INST rows in {args.asm_kb}")
+        print(f"{args.asm_kb} has no INST rows")
         return 0
 
     counts: dict[str, int] = {}

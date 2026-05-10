@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
+
+# Suppress ezdxf's INFO + WARNING chatter before any module imports it.
+# build123d transitively imports ezdxf at import-time, so this needs to
+# happen at the very top of the entry point. Two sources of noise:
+#   1. "Cannot create cache home directory" — addressed by HOME=/tmp in
+#      the Dockerfile but kept here for non-container runs.
+#   2. "did not write header var $INTERFERE*" INFO during DXF write —
+#      harmless library bookkeeping the user doesn't need to see.
+logging.getLogger("ezdxf").setLevel(logging.ERROR)
 
 from mk import __version__
 from mk.commands import apply as cmd_apply

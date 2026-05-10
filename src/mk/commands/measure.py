@@ -18,7 +18,7 @@ import math
 import sys
 from typing import Any
 
-from mk.db import DEFAULT_DB_PATH, open_db
+from mk.db import DEFAULT_DB_PATH, kb_exists, open_db
 from mk.geometry import brep_bytes_to_shape
 from mk.mate import _parse_joint_path, _read_inst_ref_kb, _read_joint_frame
 from mk.transform import apply_location_to_topods, trsf_from_location
@@ -97,13 +97,18 @@ def _world_joint_frame(conn, asm_kb: str, joint_path: str) -> tuple[list[float],
 def run(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
 
+    if not kb_exists(conn, args.asm_kb):
+        print(f"no such assembly: {args.asm_kb}", file=sys.stderr)
+        conn.close()
+        return 1
+
     rows = conn.execute(
         "SELECT path, name, properties FROM knowledge_base "
         "WHERE knowledge_base = ? AND label = 'INST' ORDER BY path",
         (args.asm_kb,),
     ).fetchall()
     if not rows:
-        print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
+        print(f"{args.asm_kb} has no INST rows", file=sys.stderr)
         conn.close()
         return 1
 
@@ -175,26 +180,29 @@ def run(args: argparse.Namespace) -> int:
             (args.asm_kb,),
         ).fetchall()
 
-        printed_header = False
+        # First pass: collect every (inst, joint) pair so we can size the
+        # label column from the longest "inst.joint" combined string.
+        joint_entries: list[tuple[str, str, str]] = []  # (inst_name, joint_name, joint_path)
         for ir in joint_rows:
             j_rows = conn.execute(
                 "SELECT name FROM knowledge_base "
                 "WHERE knowledge_base = ? AND label = 'JOINT' ORDER BY name",
                 (ir["ref_kb"],),
             ).fetchall()
-            if not j_rows:
-                continue
-            if not printed_header:
-                print("joint frames in world coords")
-                printed_header = True
             for jr in j_rows:
-                # Build the full joint path using the inst's ltree path so
-                # SUB-nested insts produce well-formed joint paths.
-                joint_path = f"{ir['inst_path']}.JOINT.{jr['name']}"
+                joint_entries.append((
+                    ir["inst_name"], jr["name"],
+                    f"{ir['inst_path']}.JOINT.{jr['name']}",
+                ))
+
+        if joint_entries:
+            print("joint frames in world coords")
+            label_w = max(len(f"{i}.{j}") for i, j, _ in joint_entries)
+            for inst_name, joint_name, joint_path in joint_entries:
                 origin_w, zdir_w = _world_joint_frame(conn, args.asm_kb, joint_path)
-                print(f"  {ir['inst_name']}.{jr['name']:<14}  "
+                label = f"{inst_name}.{joint_name}"
+                print(f"  {label.ljust(label_w)}  "
                       f"origin={_fmt_xyz(origin_w)}  z_dir={_fmt_xyz(zdir_w)}")
-        if printed_header:
             print()
 
     if args.distance:

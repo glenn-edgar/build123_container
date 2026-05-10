@@ -135,3 +135,16 @@ def verify_ltree(conn: sqlite3.Connection) -> bool:
         "SELECT ltree_descendant(?, ?)", ("parts", "parts.foo")
     ).fetchone()
     return bool(row[0])
+
+
+def kb_exists(conn: sqlite3.Connection, kb_name: str) -> bool:
+    """True iff ``kb_name`` has an entry in ``knowledge_base_info``.
+
+    Used by user-facing commands to distinguish "no such assembly" from
+    "assembly exists but has no INST rows yet" — different fixes, so
+    different error messages.
+    """
+    return conn.execute(
+        "SELECT 1 FROM knowledge_base_info WHERE knowledge_base = ?",
+        (kb_name,),
+    ).fetchone() is not None

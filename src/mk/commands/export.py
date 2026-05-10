@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from mk.db import DEFAULT_DB_PATH, open_db
+from mk.db import DEFAULT_DB_PATH, kb_exists, open_db
 from mk.geometry import brep_bytes_to_shape, shape_to_brep_bytes
 from mk.transform import build123d_location
 
@@ -27,6 +27,11 @@ def add_parser(subparsers) -> None:
 def run(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
 
+    if not kb_exists(conn, args.asm_kb):
+        print(f"no such assembly: {args.asm_kb}", file=sys.stderr)
+        conn.close()
+        return 1
+
     if args.format == "urdf":
         return _run_urdf(conn, args)
 
@@ -36,7 +41,7 @@ def run(args: argparse.Namespace) -> int:
         (args.asm_kb,),
     ).fetchall()
     if not rows:
-        print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
+        print(f"{args.asm_kb} has no INST rows", file=sys.stderr)
         return 1
 
     # Phase C.3 policy: STL is viewer-bound (filters hidden insts);

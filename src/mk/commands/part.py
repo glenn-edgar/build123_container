@@ -91,6 +91,16 @@ def run_list(args: argparse.Namespace) -> int:
 
 
 def run_show(args: argparse.Namespace) -> int:
+    """Grouped, tree-structured part-KB display.
+
+    Layout: header (kb + description), then PARAM, JOINT, META, PART
+    sections in that order. META renders dotted keys as a nested tree
+    via mk.meta_tree (matching `mk part export`), with ``_TODO_*``
+    placeholders kept in a separate sub-block so they don't interleave
+    with real schema values.
+    """
+    from mk.meta_tree import build_meta_tree
+
     conn = open_db(args.db)
     info = conn.execute(
         "SELECT description FROM knowledge_base_info WHERE knowledge_base = ?",
@@ -105,25 +115,96 @@ def run_show(args: argparse.Namespace) -> int:
         "WHERE knowledge_base = ? ORDER BY label, name",
         (args.kb_name,),
     ).fetchall()
-
-    print(f"{args.kb_name}" + (f"  — {info['description']}" if info["description"] else ""))
+    by_label: dict[str, list] = {"PARAM": [], "JOINT": [], "META": [], "PART": []}
+    other: list = []
     for r in rows:
-        props = json.loads(r["properties"]) if r["properties"] else {}
-        if r["label"] == "PART":
-            entry = props.get("entry", "?")
-            n_lines = len(props.get("source", "").splitlines())
-            print(f"  PART.{r['name']}: entry={entry}, source={n_lines} lines")
-        elif r["label"] == "PARAM":
-            print(f"  PARAM.{r['name']} = {props.get('value')!r} ({props.get('type','?')})")
-        elif r["label"] == "JOINT":
-            origin = props.get("origin")
-            print(f"  JOINT.{r['name']}: origin={origin}")
-        elif r["label"] == "META":
-            print(f"  META.{r['name']} = {props.get('value')!r}")
+        if r["label"] in by_label:
+            by_label[r["label"]].append(r)
         else:
-            print(f"  {r['label']}.{r['name']}: {props}")
+            other.append(r)
+
+    desc = info["description"] or ""
+    print(f"{args.kb_name}" + (f"  — {desc}" if desc else ""))
+
+    # PARAM block.
+    if by_label["PARAM"]:
+        print()
+        print("PARAM:")
+        for r in by_label["PARAM"]:
+            p = json.loads(r["properties"]) if r["properties"] else {}
+            print(f"  {r['name']} = {p.get('value')!r} ({p.get('type', '?')})")
+
+    # JOINT block — show origin + optional z_dir + optional x_dir.
+    if by_label["JOINT"]:
+        print()
+        print("JOINT:")
+        name_w = max(len(r["name"]) for r in by_label["JOINT"])
+        for r in by_label["JOINT"]:
+            p = json.loads(r["properties"]) if r["properties"] else {}
+            parts = [f"origin={p.get('origin')}"]
+            if "z_dir" in p:
+                parts.append(f"z_dir={p['z_dir']}")
+            if "x_dir" in p:
+                parts.append(f"x_dir={p['x_dir']}")
+            print(f"  {r['name'].ljust(name_w)}  {'  '.join(parts)}")
+
+    # META block — nested by namespace; _TODO_* split into a trailer.
+    if by_label["META"]:
+        meta_pairs: list[tuple[str, object]] = []
+        todo_pairs: list[tuple[str, object]] = []
+        for r in by_label["META"]:
+            v = json.loads(r["properties"]).get("value") if r["properties"] else None
+            if r["name"].startswith("_TODO_"):
+                todo_pairs.append((r["name"], v))
+            else:
+                meta_pairs.append((r["name"], v))
+
+        print()
+        print("META:")
+        _print_meta_tree(build_meta_tree(meta_pairs), indent=1)
+
+        if todo_pairs:
+            print()
+            print("  _TODO_ (placeholders — fill from datasheet):")
+            for name, v in todo_pairs:
+                print(f"    {name} = {v!r}")
+
+    # PART block — body source summary.
+    if by_label["PART"]:
+        print()
+        print("PART:")
+        for r in by_label["PART"]:
+            p = json.loads(r["properties"]) if r["properties"] else {}
+            entry = p.get("entry", "?")
+            n_lines = len(p.get("source", "").splitlines())
+            print(f"  {r['name']}: entry={entry}, source={n_lines} lines")
+
+    # Any sentinel we didn't anticipate (SUB/INST/MATE/LAYER on a part —
+    # shouldn't happen but handle gracefully).
+    for r in other:
+        p = json.loads(r["properties"]) if r["properties"] else {}
+        print(f"  {r['label']}.{r['name']}: {p}")
+
     conn.close()
     return 0
+
+
+def _print_meta_tree(tree: dict, *, indent: int = 0) -> None:
+    """Pretty-print a nested META dict. Leaves render as ``key = value``;
+    sub-dicts render as ``namespace:`` headers with recursive content
+    indented two spaces deeper.
+    """
+    pad = "  " * indent
+    # Render leaves before namespaces so flat keys appear together at
+    # the top of each scope (visually cleaner — easier to spot the
+    # primitive fields without scanning past namespace blocks).
+    leaves = [(k, v) for k, v in tree.items() if not isinstance(v, dict)]
+    namespaces = [(k, v) for k, v in tree.items() if isinstance(v, dict)]
+    for k, v in leaves:
+        print(f"{pad}{k} = {v!r}")
+    for k, sub in namespaces:
+        print(f"{pad}{k}:")
+        _print_meta_tree(sub, indent=indent + 1)
 
 
 def run_rm(args: argparse.Namespace) -> int:
@@ -244,10 +325,13 @@ def run_export(args: argparse.Namespace) -> int:
         print(f"no such part: {args.kb_name}", file=sys.stderr)
         return 1
 
+    # ensure_ascii=False keeps Unicode literal (Φ stays Φ, not Φ) —
+    # matters for descriptions and vendor strings that controllers may
+    # render verbatim in logs / UIs.
     if args.compact:
-        text = json.dumps(doc, separators=(",", ":"))
+        text = json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
     else:
-        text = json.dumps(doc, indent=2)
+        text = json.dumps(doc, indent=2, ensure_ascii=False)
 
     if args.out:
         out_path = Path(args.out)
