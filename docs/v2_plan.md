@@ -29,7 +29,7 @@ acted-on, mate cycle detection) are either resolved or out-of-scope for v2.
 The differentiator. mk-cad's database-backed approach starts paying off when
 the same KB rows that produce geometry also drive software simulation.
 
-### B.1 — Revolute and prismatic mate types (~3 days)
+### B.1 — Revolute and prismatic mate types ✅ (done 2026-05-10)
 
 Spec the constraint in `MATE.properties`:
 

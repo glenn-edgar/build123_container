@@ -1,10 +1,14 @@
 """Pure-Python tests for mk.mate (no OCP needed)."""
 from __future__ import annotations
 
+import math
+
 import pytest
 
 from mk.mate import (
     JOINT_PATH_RE,
+    _axis_angle_to_rot,
+    _clamp_dof,
     _identity_rot,
     _matmul3,
     _matvec3,
@@ -163,3 +167,79 @@ class TestTopoSort:
         # No over-constraint despite both having joint_a leaf == "foo".
         result = _topo_sort_mates([m1, m2])
         assert len(result) == 2
+
+
+# ── axis-angle rotation (Rodrigues) ──────────────────────────────────────────
+
+def _almost_equal(a, b, tol=1e-9):
+    return abs(a - b) < tol
+
+
+def _mat_almost_equal(A, B, tol=1e-9):
+    return all(_almost_equal(A[i][j], B[i][j], tol) for i in range(3) for j in range(3))
+
+
+class TestAxisAngleRot:
+    def test_zero_angle_is_identity(self):
+        R = _axis_angle_to_rot([1, 0, 0], 0.0)
+        assert _mat_almost_equal(R, _identity_rot())
+
+    def test_zero_axis_returns_identity(self):
+        R = _axis_angle_to_rot([0, 0, 0], math.pi)
+        assert R == _identity_rot()
+
+    def test_180_about_z(self):
+        # Rotation by 180° about +Z: takes +X to -X, +Y to -Y, +Z stays.
+        R = _axis_angle_to_rot([0, 0, 1], math.pi)
+        v = _matvec3(R, [1.0, 0.0, 0.0])
+        assert _almost_equal(v[0], -1.0)
+        assert _almost_equal(v[1], 0.0, tol=1e-12)
+        assert _almost_equal(v[2], 0.0, tol=1e-12)
+        v = _matvec3(R, [0.0, 1.0, 0.0])
+        assert _almost_equal(v[1], -1.0)
+
+    def test_90_about_y_takes_x_to_minus_z(self):
+        # Right-hand rule: +90° about +Y takes +X to -Z.
+        R = _axis_angle_to_rot([0, 1, 0], math.pi / 2)
+        v = _matvec3(R, [1.0, 0.0, 0.0])
+        assert _almost_equal(v[0], 0.0, tol=1e-12)
+        assert _almost_equal(v[1], 0.0, tol=1e-12)
+        assert _almost_equal(v[2], -1.0)
+
+    def test_axis_normalized(self):
+        # Non-unit axis should give same result as unit axis.
+        R1 = _axis_angle_to_rot([0, 0, 1], math.pi / 4)
+        R2 = _axis_angle_to_rot([0, 0, 5], math.pi / 4)  # axis * 5
+        assert _mat_almost_equal(R1, R2, tol=1e-12)
+
+    def test_full_rotation_returns_identity(self):
+        R = _axis_angle_to_rot([1, 1, 1], 2 * math.pi)
+        assert _mat_almost_equal(R, _identity_rot(), tol=1e-9)
+
+
+# ── DOF clamping ─────────────────────────────────────────────────────────────
+
+class TestClampDof:
+    def test_no_limits_passes_through(self, capsys):
+        assert _clamp_dof(42.0, None, "m", "deg") == 42.0
+        assert capsys.readouterr().out == ""
+
+    def test_within_range(self, capsys):
+        assert _clamp_dof(45.0, [0.0, 90.0], "m", "deg") == 45.0
+        assert capsys.readouterr().out == ""
+
+    def test_below_lower_clamps(self, capsys):
+        assert _clamp_dof(-10.0, [0.0, 90.0], "hinge", "deg") == 0.0
+        assert "WARN" in capsys.readouterr().out
+
+    def test_above_upper_clamps(self, capsys):
+        assert _clamp_dof(120.0, [0.0, 90.0], "hinge", "deg") == 90.0
+        assert "WARN" in capsys.readouterr().out
+
+    def test_one_sided_lower_only(self):
+        assert _clamp_dof(50.0, [0.0, None], "m", "mm") == 50.0
+        assert _clamp_dof(-5.0, [0.0, None], "m", "mm") == 0.0
+
+    def test_one_sided_upper_only(self):
+        assert _clamp_dof(50.0, [None, 100.0], "m", "mm") == 50.0
+        assert _clamp_dof(150.0, [None, 100.0], "m", "mm") == 100.0

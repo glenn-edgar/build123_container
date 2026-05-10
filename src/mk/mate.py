@@ -21,6 +21,7 @@ ValueError before any DB write.
 from __future__ import annotations
 
 import json
+import math
 import re
 import sqlite3
 from typing import Any
@@ -135,6 +136,109 @@ def _identity_rot() -> list[list[float]]:
     return [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
 
 
+def _axis_angle_to_rot(axis: list[float], angle_rad: float) -> list[list[float]]:
+    """Rotation matrix from axis-angle (Rodrigues' formula). Axis need not be
+    unit; we normalize. Zero-length axis returns identity.
+    """
+    nx, ny, nz = float(axis[0]), float(axis[1]), float(axis[2])
+    n = math.sqrt(nx * nx + ny * ny + nz * nz)
+    if n == 0.0:
+        return _identity_rot()
+    nx, ny, nz = nx / n, ny / n, nz / n
+    c = math.cos(angle_rad)
+    s = math.sin(angle_rad)
+    C = 1.0 - c
+    return [
+        [c + nx * nx * C,        nx * ny * C - nz * s,  nx * nz * C + ny * s],
+        [ny * nx * C + nz * s,   c + ny * ny * C,       ny * nz * C - nx * s],
+        [nz * nx * C - ny * s,   nz * ny * C + nx * s,  c + nz * nz * C],
+    ]
+
+
+def _solve_rigid_rot(ja_zdir: list[float], jb_zdir: list[float]) -> list[list[float]]:
+    """The pure-rotation part of a rigid mate: rotation that takes ja_zdir
+    to -jb_zdir using the shortest-arc quaternion. Returns 3x3 matrix.
+    """
+    from OCP.gp import gp_Quaternion, gp_Trsf, gp_Vec
+    a_z = gp_Vec(*ja_zdir)
+    b_z_neg = gp_Vec(*jb_zdir).Reversed()
+    q = gp_Quaternion()
+    q.SetRotation(a_z, b_z_neg)
+    rot_trsf = gp_Trsf()
+    rot_trsf.SetRotation(q)
+    return [[rot_trsf.Value(i, j) for j in (1, 2, 3)] for i in (1, 2, 3)]
+
+
+def _solve_revolute(
+    ja_origin: list[float],
+    ja_zdir: list[float],
+    jb_origin: list[float],
+    jb_zdir: list[float],
+    axis_local: list[float],
+    angle_deg: float,
+) -> tuple[list[list[float]], list[float]]:
+    """Rigid alignment plus rotation by `angle_deg` around `axis_local`
+    (a vector in joint_a's local frame, typically ``[0, 0, 1]`` = z_dir
+    so the rotation is around the joint's normal — a hinge pin).
+
+    Math: R_world = R_axis(angle) ∘ R_rigid; t_world = jb_origin - R_world * ja_origin.
+    The rotation pivots about joint_b's origin (same as joint_a's world origin
+    because that's where the rigid alignment puts it).
+    """
+    R_rigid = _solve_rigid_rot(ja_zdir, jb_zdir)
+    # axis_local rotated into world frame (after rigid alignment).
+    axis_world = _matvec3(R_rigid, axis_local)
+    R_axis = _axis_angle_to_rot(axis_world, math.radians(angle_deg))
+    R_total = _matmul3(R_axis, R_rigid)
+    rotated_a = _matvec3(R_total, ja_origin)
+    translation = [
+        jb_origin[0] - rotated_a[0],
+        jb_origin[1] - rotated_a[1],
+        jb_origin[2] - rotated_a[2],
+    ]
+    return R_total, translation
+
+
+def _solve_prismatic(
+    ja_origin: list[float],
+    ja_zdir: list[float],
+    jb_origin: list[float],
+    jb_zdir: list[float],
+    axis_local: list[float],
+    displacement_mm: float,
+) -> tuple[list[list[float]], list[float]]:
+    """Rigid alignment plus translation by `displacement_mm` along
+    `axis_local` (vector in joint_a's local frame, typically ``[0, 0, 1]``).
+    No additional rotation.
+    """
+    R_rigid = _solve_rigid_rot(ja_zdir, jb_zdir)
+    axis_world = _matvec3(R_rigid, axis_local)
+    n = math.sqrt(sum(c * c for c in axis_world))
+    if n != 0.0:
+        axis_world = [c / n for c in axis_world]
+    rotated_a = _matvec3(R_rigid, ja_origin)
+    translation = [
+        jb_origin[0] - rotated_a[0] + displacement_mm * axis_world[0],
+        jb_origin[1] - rotated_a[1] + displacement_mm * axis_world[1],
+        jb_origin[2] - rotated_a[2] + displacement_mm * axis_world[2],
+    ]
+    return R_rigid, translation
+
+
+
+
+def _clamp_dof(value: float, limits, mate_name: str, unit: str) -> float:
+    """Clamp DOF value to the [lo, hi] limits if specified. Warns on clamp."""
+    if not limits:
+        return value
+    lo, hi = limits
+    if lo is not None and value < lo:
+        print(f"  WARN: mate {mate_name!r} default {value} {unit} < lower limit {lo}; clamped")
+        return float(lo)
+    if hi is not None and value > hi:
+        print(f"  WARN: mate {mate_name!r} default {value} {unit} > upper limit {hi}; clamped")
+        return float(hi)
+    return value
 
 
 def _topo_sort_mates(parsed: list[dict]) -> list[dict]:
@@ -209,20 +313,27 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
 
     # Parse all mates upfront so the topo sort can see the dependency graph.
     parsed: list[dict] = []
+    SUPPORTED = {"rigid", "revolute", "prismatic"}
     for r in mate_rows:
         p = json.loads(r["properties"])
-        if p.get("mate_type", "rigid") != "rigid":
+        mate_type = p.get("mate_type", "rigid")
+        if mate_type not in SUPPORTED:
             print(
                 f"  skip mate {r['name']!r}: "
-                f"type {p.get('mate_type')!r} (Phase 6 = rigid only)"
+                f"type {mate_type!r} not supported "
+                f"(supported: {sorted(SUPPORTED)})"
             )
             continue
         _, a_path, a_name, joint_a_name = _parse_joint_path(p["joint_a"])
         _, b_path, b_name, joint_b_name = _parse_joint_path(p["joint_b"])
         parsed.append({
             "name": r["name"],
+            "mate_type": mate_type,
             "a_path": a_path, "a_name": a_name, "joint_a_name": joint_a_name,
             "b_path": b_path, "b_name": b_name, "joint_b_name": joint_b_name,
+            "axis": p.get("axis", [0.0, 0.0, 1.0]),
+            "limits": p.get("limits"),  # [lo, hi] or None
+            "default": p.get("default"),  # float or None
         })
 
     if not parsed:
@@ -250,8 +361,23 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
         ja_origin, ja_zdir = _read_joint_frame(conn, ref_a, joint_a_name)
         jb_origin, jb_zdir = _read_joint_frame(conn, ref_b, joint_b_name)
 
-        # Rotation/translation of inst_a relative to inst_b's local frame.
-        rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
+        # Dispatch on mate type. Each solver returns (rotation, translation)
+        # for inst_a relative to inst_b's local frame.
+        mate_type = m["mate_type"]
+        if mate_type == "rigid":
+            rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
+        elif mate_type == "revolute":
+            angle = _clamp_dof(m["default"] or 0.0, m["limits"], m["name"], "deg")
+            rel_rot, rel_trans = _solve_revolute(
+                ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], angle,
+            )
+        elif mate_type == "prismatic":
+            disp = _clamp_dof(m["default"] or 0.0, m["limits"], m["name"], "mm")
+            rel_rot, rel_trans = _solve_prismatic(
+                ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], disp,
+            )
+        else:  # unreachable — filtered upstream
+            raise ValueError(f"unknown mate_type {mate_type!r}")
 
         # Compose with inst_b's already-resolved world transform:
         #   T_a_world = T_b_world ∘ T_a_rel_to_b
@@ -279,9 +405,13 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
             (json.dumps(a_props), asm_kb, a_path),
         )
         if verbose:
+            type_tag = m["mate_type"]
+            if mate_type in ("revolute", "prismatic") and m.get("default") is not None:
+                unit = "deg" if mate_type == "revolute" else "mm"
+                type_tag = f"{mate_type} @ {m['default']} {unit}"
             print(
-                f"  mate {m['name']}: {a_name}.{joint_a_name} ↔ "
-                f"{b_name}.{joint_b_name}"
+                f"  mate {m['name']} ({type_tag}): "
+                f"{a_name}.{joint_a_name} ↔ {b_name}.{joint_b_name}"
             )
             print(
                 f"    world loc=({composed_trans[0]:.3f}, "

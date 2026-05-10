@@ -177,13 +177,35 @@ class _AsmBuilder:
         joint_a: str,
         joint_b: str,
         mate_type: str = "rigid",
+        axis: Optional[list] = None,
+        limits: Optional[list] = None,
+        default: Optional[float] = None,
         params: Optional[dict] = None,
     ) -> None:
+        """Declare a mate between two joint paths.
+
+        For ``mate_type="rigid"``: aligns joint_a coincident with joint_b,
+        z-axes opposing. No kinematic DOF.
+
+        For ``mate_type="revolute"`` or ``"prismatic"``: rigid alignment plus
+        one DOF along ``axis`` (a 3-vector in joint_a's local frame; defaults
+        to ``[0, 0, 1]`` = the joint's z direction = a hinge pin / slide
+        along the joint normal). ``limits=[lo, hi]`` constrains the DOF
+        range (degrees for revolute, mm for prismatic; ``None`` = unbounded).
+        ``default`` is the initial pose value (degrees / mm) used at build
+        time. Phase B.2 adds animation overrides via outputs/<asm>.state.json.
+        """
         props: dict[str, Any] = {
             "joint_a": joint_a,
             "joint_b": joint_b,
             "mate_type": mate_type,
         }
+        if axis is not None:
+            props["axis"] = list(axis)
+        if limits is not None:
+            props["limits"] = list(limits)
+        if default is not None:
+            props["default"] = float(default)
         if params:
             props["params"] = params
         with redirect_stdout(io.StringIO()):
