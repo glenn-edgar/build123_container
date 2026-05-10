@@ -12,8 +12,10 @@ import pytest
 from mk.kb import _split_layer_tag, _validate_layer_tag
 from mk.layers import (
     DEFAULT_LAYER,
+    build_visibility_index,
     count_insts_per_layer,
     list_layer_rows,
+    partition_by_visibility,
     resolve_inst_layers,
 )
 
@@ -233,3 +235,91 @@ class TestListLayerRows:
         rows = list_layer_rows(conn, "asm_t")
         assert [n for n, _ in rows] == ["alpha", "zebra"]
         assert rows[0][1] == {"visible": False, "color": "#aabbcc"}
+
+
+# ── visibility index (C.3) ──────────────────────────────────────────────────
+
+class TestVisibilityIndex:
+    def test_all_default_all_visible(self, conn):
+        _add_inst(conn, "a")
+        _add_inst(conn, "b")
+        _add_layer(conn, "DEFAULT", {"visible": True})
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis == {"asm_t.INST.a": True, "asm_t.INST.b": True}
+
+    def test_default_hidden_hides_untagged(self, conn):
+        _add_inst(conn, "a")
+        _add_inst(conn, "b", layer="frame")
+        _add_layer(conn, "DEFAULT", {"visible": False})
+        _add_layer(conn, "frame", {"visible": True})
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis["asm_t.INST.a"] is False
+        assert vis["asm_t.INST.b"] is True
+
+    def test_multi_tag_union_any_visible(self, conn):
+        # Inst on both 'electronics' (hidden) and 'frame' (visible).
+        # Union semantics: visible if ANY layer is on.
+        _add_inst(conn, "shield", layer="electronics,frame")
+        _add_layer(conn, "electronics", {"visible": False})
+        _add_layer(conn, "frame", {"visible": True})
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis["asm_t.INST.shield"] is True
+
+    def test_multi_tag_all_hidden_is_hidden(self, conn):
+        _add_inst(conn, "shield", layer="electronics,emi")
+        _add_layer(conn, "electronics", {"visible": False})
+        _add_layer(conn, "emi", {"visible": False})
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis["asm_t.INST.shield"] is False
+
+    def test_sub_inheritance_hides_children(self, conn):
+        # SUB tagged 'electronics' (hidden); child inst inherits.
+        _add_sub(conn, "elec", layer="electronics", path="asm_t.SUB.elec")
+        _add_inst(conn, "pcb", path="asm_t.SUB.elec.INST.pcb")
+        _add_layer(conn, "electronics", {"visible": False})
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis["asm_t.SUB.elec.INST.pcb"] is False
+
+    def test_missing_layer_row_defaults_to_visible(self, conn):
+        # Manifest tagged 'fasteners' but no LAYER row exists (e.g.
+        # manifest edited without re-apply). Forward-compat: treat
+        # unknown tag as visible.
+        _add_inst(conn, "bolt", layer="fasteners")
+        # No LAYER.fasteners row inserted.
+        vis = build_visibility_index(conn, "asm_t")
+        assert vis["asm_t.INST.bolt"] is True
+
+
+class TestPartitionByVisibility:
+    def test_split(self, conn):
+        _add_inst(conn, "a")
+        _add_inst(conn, "b", layer="hidden_layer")
+        _add_layer(conn, "DEFAULT", {"visible": True})
+        _add_layer(conn, "hidden_layer", {"visible": False})
+        rows = conn.execute(
+            "SELECT path FROM knowledge_base WHERE label = 'INST' ORDER BY path"
+        ).fetchall()
+        visible, hidden = partition_by_visibility(conn, "asm_t", rows)
+        assert len(visible) == 1
+        assert hidden == 1
+        assert visible[0]["path"] == "asm_t.INST.a"
+
+    def test_all_visible_no_hidden(self, conn):
+        _add_inst(conn, "a")
+        _add_inst(conn, "b")
+        rows = conn.execute(
+            "SELECT path FROM knowledge_base WHERE label = 'INST' ORDER BY path"
+        ).fetchall()
+        visible, hidden = partition_by_visibility(conn, "asm_t", rows)
+        assert len(visible) == 2
+        assert hidden == 0
+
+    def test_all_hidden(self, conn):
+        _add_inst(conn, "a", layer="hidden_layer")
+        _add_layer(conn, "hidden_layer", {"visible": False})
+        rows = conn.execute(
+            "SELECT path FROM knowledge_base WHERE label = 'INST' ORDER BY path"
+        ).fetchall()
+        visible, hidden = partition_by_visibility(conn, "asm_t", rows)
+        assert visible == []
+        assert hidden == 1

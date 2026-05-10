@@ -64,6 +64,11 @@ def add_parser(subparsers) -> None:
     p = subparsers.add_parser("mass", help="Mass / CoM / inertia for an assembly KB.")
     p.add_argument("asm_kb", help="assembly KB name, e.g. asm_demo")
     p.add_argument("--db", default=DEFAULT_DB_PATH)
+    p.add_argument(
+        "--respect-layers", action="store_true",
+        help="exclude insts on hidden layers (default: include all — "
+             "engineering data shouldn't change with viewer state)",
+    )
     p.set_defaults(func=run)
 
 
@@ -82,6 +87,12 @@ def run(args: argparse.Namespace) -> int:
         print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
         conn.close()
         return 1
+
+    if getattr(args, "respect_layers", False):
+        from mk.layers import partition_by_visibility
+        rows, hidden_count = partition_by_visibility(conn, args.asm_kb, rows)
+        if hidden_count > 0:
+            print(f"  layer filter: {hidden_count} hidden inst(s) excluded from mass tally")
 
     total = GProp_GProps()
     n_inst = 0

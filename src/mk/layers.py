@@ -74,6 +74,71 @@ def list_layer_rows(
     ]
 
 
+def _layer_visibility_map(conn: sqlite3.Connection, asm_kb: str) -> dict[str, bool]:
+    """Map ``layer_name → visible_bool``. Unknown names default to True
+    (forward-compat: a tag without a LAYER row is treated as visible).
+    """
+    rows = conn.execute(
+        "SELECT name, properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'LAYER'",
+        (asm_kb,),
+    ).fetchall()
+    out: dict[str, bool] = {}
+    for r in rows:
+        props = json.loads(r["properties"]) if r["properties"] else {}
+        out[r["name"]] = bool(props.get("visible", True))
+    return out
+
+
+def build_visibility_index(
+    conn: sqlite3.Connection, asm_kb: str,
+) -> dict[str, bool]:
+    """Map ``inst_path → is_visible`` for every INST in the assembly.
+
+    Visibility is **union semantics**: an INST is visible if *any* of
+    its effective layers (own ∪ inherited from SUB ancestors) has
+    ``visible=true``. This matches how viewers handle overlapping
+    layers — turning off ``electronics`` doesn't hide a part that's
+    also on ``frame`` if ``frame`` is still on.
+
+    Untagged insts resolve to ``{DEFAULT}``; their visibility tracks
+    whatever state ``LAYER.DEFAULT`` is in.
+
+    Forward-compat: a layer name with no corresponding LAYER row is
+    treated as visible (true). Should only happen if a manifest is
+    edited but not re-applied — the next ``mk apply`` creates the
+    missing rows.
+    """
+    layer_vis = _layer_visibility_map(conn, asm_kb)
+    inst_rows = conn.execute(
+        "SELECT path FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'INST' "
+        "ORDER BY path",
+        (asm_kb,),
+    ).fetchall()
+    out: dict[str, bool] = {}
+    for r in inst_rows:
+        effective = resolve_inst_layers(conn, asm_kb, r["path"])
+        out[r["path"]] = any(layer_vis.get(name, True) for name in effective)
+    return out
+
+
+def partition_by_visibility(
+    conn: sqlite3.Connection, asm_kb: str, inst_rows: list,
+) -> tuple[list, int]:
+    """Split a list of INST rows into (visible_only, hidden_count).
+
+    Used by commands that filter their output by current layer state.
+    The row objects are the result of a ``SELECT ... FROM knowledge_base``
+    query; only the ``path`` column is consulted here, so any row mapping
+    that supports ``r["path"]`` will work.
+    """
+    vis = build_visibility_index(conn, asm_kb)
+    visible = [r for r in inst_rows if vis.get(r["path"], True)]
+    hidden = len(inst_rows) - len(visible)
+    return visible, hidden
+
+
 def count_insts_per_layer(
     conn: sqlite3.Connection, asm_kb: str,
 ) -> dict[str, int]:

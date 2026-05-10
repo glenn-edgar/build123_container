@@ -52,6 +52,20 @@ def run(args: argparse.Namespace) -> int:
         conn.close()
         return 1
 
+    # Phase C.3: viewer respects layer visibility — hidden parts vanish
+    # entirely from the glTF, sidebar, joint hotspots, and mass tally.
+    from mk.layers import partition_by_visibility
+    inst_rows, hidden_count = partition_by_visibility(conn, args.asm_kb, inst_rows)
+    if hidden_count > 0:
+        print(f"  layer filter: {hidden_count} hidden inst(s) excluded from view")
+    if not inst_rows:
+        print(
+            f"no visible INST rows in {args.asm_kb} — every part is on a hidden layer",
+            file=sys.stderr,
+        )
+        conn.close()
+        return 1
+
     shapes = []
     inst_summaries: list[dict[str, Any]] = []
     overall_min = [math.inf] * 3

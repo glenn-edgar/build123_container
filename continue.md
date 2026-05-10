@@ -21,59 +21,61 @@ verbatim in §2 below. Working history (what landed when) lives in
 | Phase B.3 — typed META schema | ✅ | Dotted META keys (`electrical.voltage_nominal_v`, `mech.gear_ratio`, …) group into namespaces under `meta` in the new `mk part export <kb>` JSON output. Flat keys (density, color, mass_g_override, _TODO_*) stay top-level. Backward-compatible — manifest API unchanged, `mk part show` keeps its row view. window_test motor migrated to the typed schema as a worked example. |
 | Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). |
 | Phase C.1+C.2 — layer data model + CLI | ✅ | `LAYER.<name>` sentinel + `properties.layer` tags on INST/SUB. SUB inheritance with multi-tag union (`leaf_set ∪ ancestor_set`). Auto-create on first reference; state preserved across `mk apply` re-runs. `mk layer ls/set/all/color` CLI. Bool visibility (tri-state deferred to v3 per design doc). |
-| Phase C.3 — per-command visibility filter | ⏳ | wire `mk show`, `mk export gltf/step/dxf`, `mk mass`, `mk bom` to honor layer state per the `docs/v2_layers.md` policy table; ~2 days. |
-| Phase C.4 — STEP roundtrip | ⏳ | OCC `XCAFDoc_LayerTool` attaches layer assignments during STEP export; ~1 day. |
-| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF (uses C.4's layer mapping); ~1.5 wk. |
+| Phase C.3 — per-command visibility filter | ✅ | `mk show` and `mk export stl` filter out hidden insts; `mk export step/brep/urdf` and `mk build` always include all; `mk mass`/`mk bom` default-include with `--respect-layers` flag for opt-in filtering. Filtered commands log the skip count. |
+| Phase C.4 — STEP XCAF roundtrip | ⚠️ partial | `mk export step` now uses STEPCAFControl_Writer + XCAF doc model. **Colors round-trip cleanly** (META.color → STEP COLOUR_RGB → FreeCAD/etc.). **Layers are best-effort**: OCC 7.8.1.1's writer emits at most one shape per `PRESENTATION_LAYER_ASSIGNMENT` and drops multi-tag shapes entirely. Single-tag distinct-name cases mostly survive; same-layer-on-many-shapes loses all but one. Documented in `src/mk/step_xcaf.py`. Phase D (DXF) can sidestep this by attaching layers directly via ezdxf. |
+| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF (uses Phase C layer mapping via ezdxf, not via STEP); ~1.5 wk. |
 
 `docs/v2_plan.md` is the long-form v2 commitment. `HISTORY.md` is the
 phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** Phase B done, Phase C halfway done (data model +
-CLI shipped, visibility filter + STEP roundtrip remain). Three picks:
+**Read this first.** Phase B done, Phase C effectively done (C.1+C.2
+clean, C.3 clean, C.4 partial — colors roundtrip, layer write is OCC-
+limited and documented). The natural next move is **Phase D —
+engineering drawings**, the last unbuilt phase in the v2 plan.
 
-1. **Phase C.3 — per-command visibility filter** (~2 days) **[my pick]**.
-   Wire the existing LAYER state through the commands that should
-   honor it. Per `docs/v2_layers.md` §"Where the filter applies":
-   `mk show` and `mk export gltf` exclude hidden parts; `mk export
-   step/dxf` include all parts but emit layer metadata; `mk mass`
-   and `mk bom` default-include (engineering data shouldn't lie),
-   with a `--respect-layers` flag for "what user sees weighs"; `mk
-   build` always builds all parts (hidden ≠ unbuilt). Real design
-   call to make on the `--respect-layers` flag semantics — confirm
-   before coding.
+1. **Phase D — engineering drawings → DXF** (~1.5 weeks) **[my pick]**.
+   Per `docs/v2_plan.md` §D: HLR ortho-view projection via
+   `HLRBRep_Algo` / `HLRBRep_PolyAlgo` → visible/hidden edge sets →
+   project to 2D Sketch → emit DXF via ezdxf with proper layer
+   mapping (visible / hidden / mk-cad-defined). Title block from
+   META.part_number, vendor. Optional PDF wrap via
+   `ezdxf.addons.drawing`. Sub-phases D.1–D.4 are spelled out.
 
-2. **Phase C.4 — STEP roundtrip** (~1 day). Uses OCC's
-   `XCAFDoc_LayerTool.SetLayer(label, layerName)` during the existing
-   STEP export. Only meaningful after C.3 since C.3 is what introduces
-   the visibility-respecting code path. Could be folded into the same
-   session as C.3.
+2. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
+   `<model-viewer>` with three.js so the scene graph updates from
+   `state.json` polling. Independent of Phase D.
 
-3. **Phase B.2.b — live JS animation** (~2–3 days). Pure frontend
-   rewrite. Independent of C / D.
+3. **C.4 hardening — multi-shape layer write**. If the STEP-layer
+   limitation becomes a real friction point (e.g., a downstream tool
+   refuses to ingest the file), the workaround is post-processing
+   the STEP file to inject additional `PRESENTATION_LAYER_ASSIGNMENT`
+   entries. Defer until someone hits it.
 
-My pick: **C.3 + C.4 together**, then D. C.3 is small per command but
-threads through many; C.4 is a focused integration with one new OCC
-API. After both ship, Phase D (DXF engineering drawings) can begin
-with the layer-mapping primitive in place.
+My pick: **Phase D**. Finishes the v2 plan, and the layer primitive
+from C.3 plus the design-doc DXF layer map gives us everything we
+need to wire it up cleanly.
 
 **State of the repo**: clean working tree (assuming this session's
-C.1+C.2 commit lands), `main` at the most recent commit. Docs live
-at https://glenn-edgar.github.io/build123_container/.
+C.3+C.4 commit lands), `main` at the most recent commit. Docs at
+https://glenn-edgar.github.io/build123_container/.
 
 **Quick verification commands**:
 ```bash
-.venv/bin/pytest tests/                                       # 132 host tests, ~110 ms
-docker compose run --rm cad apply /project/manifests/nested_asm.py
-docker compose run --rm cad layer ls asm_nested                # 5 layers, counts as expected
-docker compose run --rm cad layer set asm_nested emi off       # toggle
-docker compose run --rm cad apply /project/manifests/nested_asm.py   # state preserved
+.venv/bin/pytest tests/                                       # 141 host tests, ~110 ms
+docker compose run --rm cad layer ls asm_nested                # 5 layers + counts
+docker compose run --rm cad layer set asm_nested emi off
+docker compose run --rm cad mass asm_nested                    # default: include all → 4 g
+docker compose run --rm cad mass asm_nested --respect-layers   # filter → fewer g
+docker compose run --rm cad export asm_nested step             # XCAF: color preserved
+docker compose run --rm cad show asm_nested                    # viewer filters hidden
 docker compose run --rm cad export asm_window_test urdf        # B.4 still works
-docker compose run --rm cad part export part_n20_worm_motor_16rpm    # B.3 still works
+docker compose run --rm cad part export part_n20_worm_motor_16rpm  # B.3 still works
 ```
 
-See §10 for URDF conventions, §11 for typed META, §12 for layers.
+See §10 for URDF, §11 for typed META, §12 for layers, §13 for the
+STEP+XCAF caveat.
 
 ## 1. Definition of done — v1 ✅
 
@@ -505,3 +507,39 @@ etc. all still include every INST. C.3 threads the filter through.
 that only understand bool treat any non-`"hide"` state as visible),
 and tri-state ghosting needs viewer infrastructure that lives in
 Phase B.2.b territory.
+
+## 13. Phase C.3 + C.4 — what threads layers through, what doesn't
+
+**C.3 (per-command visibility filter)** — the policy is encoded in
+each command:
+
+| Command | Default | Notes |
+|---|---|---|
+| `mk show` | filter hidden | sidebar / glTF / joint hotspots all skip hidden insts |
+| `mk export gltf` | (same as show, see show.py) | |
+| `mk export stl` | filter hidden | visualization-bound |
+| `mk export step` | include all | XCAF emits layer metadata via C.4 |
+| `mk export brep` | include all | engineering-bound; no layer concept in BREP |
+| `mk export urdf` | include all | sim needs full kinematic tree |
+| `mk mass` | include all | `--respect-layers` opt-in for filtering |
+| `mk bom` | include all | `--respect-layers` opt-in |
+| `mk build` | always all | hidden ≠ unbuilt; cache is layer-agnostic |
+
+The visibility helper `mk.layers.build_visibility_index(conn, asm_kb)`
+is the single source of truth. Each command reads it once at the top
+and skips hidden insts when emitting output. Union semantics: an inst
+is visible if *any* of its effective layers is visible.
+
+**C.4 (STEP XCAF roundtrip)** — see also `src/mk/step_xcaf.py` docstring:
+
+- **Color works**: `META.color` hex → `Quantity_Color` →
+  `COLOUR_RGB` in STEP. FreeCAD picks it up.
+- **Layers are best-effort**: OCC 7.8.1.1's `STEPCAFControl_Writer`
+  emits at most one shape per `PRESENTATION_LAYER_ASSIGNMENT`
+  *and* drops multi-tag shapes. Workaround: write the
+  alphabetically-first layer per inst, warn on stderr when multi-
+  tag info is lost.
+- Multi-shape-per-layer (e.g., all DEFAULT) gets only the last
+  shape's assignment in the STEP file — known OCC issue.
+- Phase D's DXF export will sidestep this by attaching layers
+  directly via ezdxf, which we control end-to-end.

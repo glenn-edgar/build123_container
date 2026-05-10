@@ -39,49 +39,74 @@ def run(args: argparse.Namespace) -> int:
         print(f"no INST rows in {args.asm_kb}", file=sys.stderr)
         return 1
 
-    shapes = []
-    for r in rows:
-        props = json.loads(r["properties"])
-        gh = props.get("geom_hash")
-        if gh is None:
+    # Phase C.3 policy: STL is viewer-bound (filters hidden insts);
+    # STEP and BREP are engineering-bound (include all parts). URDF
+    # has its own branch above and follows the same engineering rule
+    # via build_urdf().
+    if args.format == "stl":
+        from mk.layers import partition_by_visibility
+        rows, hidden_count = partition_by_visibility(conn, args.asm_kb, rows)
+        if hidden_count > 0:
+            print(f"  layer filter: {hidden_count} hidden inst(s) excluded from STL")
+        if not rows:
             print(
-                f"  ERR: {r['path']} has no geom_hash. run `mk build {args.asm_kb}` first.",
+                f"no visible INST rows in {args.asm_kb} — "
+                "every part is on a hidden layer",
                 file=sys.stderr,
             )
+            conn.close()
             return 1
-        blob_row = conn.execute(
-            "SELECT brep_blob FROM geometry WHERE hash = ?", (gh,)
-        ).fetchone()
-        if blob_row is None:
-            print(
-                f"  ERR: geometry hash {gh[:12]} not in cache for {r['path']}",
-                file=sys.stderr,
-            )
-            return 1
-
-        shape = brep_bytes_to_shape(blob_row["brep_blob"])
-
-        b123d_loc = build123d_location(props.get("location"))
-        if b123d_loc is not None:
-            shape = b123d_loc * shape
-
-        shapes.append(shape)
-
-    from build123d import Compound, export_step, export_stl
-
-    # children= keyword preserves per-child color/label tree for XCAF export.
-    compound = Compound(children=shapes)
 
     out_dir = Path(args.outdir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{args.asm_kb}.{args.format}"
 
     if args.format == "step":
-        export_step(compound, str(out_path))
-    elif args.format == "stl":
-        export_stl(compound, str(out_path))
-    elif args.format == "brep":
-        out_path.write_bytes(shape_to_brep_bytes(compound))
+        # Phase C.4: XCAF-aware writer preserves layer + color metadata.
+        # Builds its own per-shape document directly from inst rows + cache;
+        # no build123d Compound needed.
+        from mk.step_xcaf import export_step_xcaf
+        try:
+            export_step_xcaf(conn, args.asm_kb, rows, out_path)
+        except RuntimeError as e:
+            print(f"  ERR: {e}", file=sys.stderr)
+            conn.close()
+            return 1
+    else:
+        shapes = []
+        for r in rows:
+            props = json.loads(r["properties"])
+            gh = props.get("geom_hash")
+            if gh is None:
+                print(
+                    f"  ERR: {r['path']} has no geom_hash. run `mk build {args.asm_kb}` first.",
+                    file=sys.stderr,
+                )
+                return 1
+            blob_row = conn.execute(
+                "SELECT brep_blob FROM geometry WHERE hash = ?", (gh,)
+            ).fetchone()
+            if blob_row is None:
+                print(
+                    f"  ERR: geometry hash {gh[:12]} not in cache for {r['path']}",
+                    file=sys.stderr,
+                )
+                return 1
+
+            shape = brep_bytes_to_shape(blob_row["brep_blob"])
+            b123d_loc = build123d_location(props.get("location"))
+            if b123d_loc is not None:
+                shape = b123d_loc * shape
+            shapes.append(shape)
+
+        from build123d import Compound, export_stl
+        # children= keyword preserves per-child color tree for the formats
+        # that need it (currently glTF only — STL is geometry-only).
+        compound = Compound(children=shapes)
+        if args.format == "stl":
+            export_stl(compound, str(out_path))
+        elif args.format == "brep":
+            out_path.write_bytes(shape_to_brep_bytes(compound))
 
     conn.close()
     print(f"wrote {out_path}  ({out_path.stat().st_size} bytes)")
