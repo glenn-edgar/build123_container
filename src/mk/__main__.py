@@ -28,6 +28,7 @@ from mk.commands import mass as cmd_mass
 from mk.commands import measure as cmd_measure
 from mk.commands import part as cmd_part
 from mk.commands import show as cmd_show
+from mk.commands import state as cmd_state
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -47,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_show.add_parser(subparsers)
     cmd_measure.add_parser(subparsers)
     cmd_layer.add_parser(subparsers)
+    cmd_state.add_parser(subparsers)
     return parser
 
 

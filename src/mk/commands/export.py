@@ -62,7 +62,9 @@ def run(args: argparse.Namespace) -> int:
             conn.close()
             return 1
 
-    out_dir = Path(args.outdir)
+    # Per-asm subdir layout (consistent across all formats — was flat
+    # for step/stl/brep/dxf and subdir for urdf/show pre-v3-cleanup).
+    out_dir = Path(args.outdir) / args.asm_kb
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"{args.asm_kb}.{args.format}"
 
