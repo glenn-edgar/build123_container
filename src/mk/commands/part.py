@@ -56,6 +56,22 @@ def add_parser(subparsers) -> None:
     rm.add_argument("--db", default=DEFAULT_DB_PATH)
     rm.set_defaults(func=run_rm)
 
+    export = part_sub.add_parser(
+        "export",
+        help="Emit a structured JSON sim-contract document for a part KB.",
+    )
+    export.add_argument("kb_name")
+    export.add_argument(
+        "--out",
+        help="write JSON to this path (default: stdout)",
+    )
+    export.add_argument(
+        "--compact", action="store_true",
+        help="single-line JSON (default: 2-space indent for human readers)",
+    )
+    export.add_argument("--db", default=DEFAULT_DB_PATH)
+    export.set_defaults(func=run_export)
+
 
 def run_list(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
@@ -166,6 +182,80 @@ def run_rm(args: argparse.Namespace) -> int:
     conn.commit()
     conn.close()
     print(f"deleted {args.kb_name!r} ({n_rows} kb rows + 1 info row)")
+    return 0
+
+
+def build_part_document(conn, kb_name: str) -> dict | None:
+    """Assemble the part's sim-contract: params, joints, meta.
+
+    Returns ``None`` if the kb doesn't exist. The ``meta`` field uses
+    ``build_meta_tree`` so dotted META keys nest into namespaces while
+    flat keys stay at the top level.
+    """
+    from mk.meta_tree import build_meta_tree
+
+    info = conn.execute(
+        "SELECT description FROM knowledge_base_info WHERE knowledge_base = ?",
+        (kb_name,),
+    ).fetchone()
+    if info is None:
+        return None
+
+    rows = conn.execute(
+        "SELECT label, name, properties FROM knowledge_base "
+        "WHERE knowledge_base = ? ORDER BY label, name",
+        (kb_name,),
+    ).fetchall()
+
+    params: dict = {}
+    joints: dict = {}
+    meta_rows: list[tuple[str, object]] = []
+
+    for r in rows:
+        props = json.loads(r["properties"]) if r["properties"] else {}
+        if r["label"] == "PARAM":
+            params[r["name"]] = props.get("value")
+        elif r["label"] == "JOINT":
+            j = {"origin": props.get("origin")}
+            if "z_dir" in props:
+                j["z_dir"] = props["z_dir"]
+            if "x_dir" in props:
+                j["x_dir"] = props["x_dir"]
+            joints[r["name"]] = j
+        elif r["label"] == "META":
+            meta_rows.append((r["name"], props.get("value")))
+
+    return {
+        "kb": kb_name,
+        "description": info["description"] or "",
+        "params": params,
+        "joints": joints,
+        "meta": build_meta_tree(meta_rows),
+    }
+
+
+def run_export(args: argparse.Namespace) -> int:
+    """``mk part export <kb>`` — JSON sim contract for controller code."""
+    conn = open_db(args.db)
+    doc = build_part_document(conn, args.kb_name)
+    conn.close()
+
+    if doc is None:
+        print(f"no such part: {args.kb_name}", file=sys.stderr)
+        return 1
+
+    if args.compact:
+        text = json.dumps(doc, separators=(",", ":"))
+    else:
+        text = json.dumps(doc, indent=2)
+
+    if args.out:
+        out_path = Path(args.out)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(text + "\n")
+        print(f"wrote {out_path} ({out_path.stat().st_size} bytes)")
+    else:
+        print(text)
     return 0
 
 

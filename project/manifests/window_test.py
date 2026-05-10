@@ -226,24 +226,32 @@ with connect():
         p.joint("shaft_a_tip", origin=[20, 16, 0], z_dir=[0, 1, 0])
         p.joint("shaft_b_tip", origin=[20, -16, 0], z_dir=[0, -1, 0])
 
+        # Top-level metadata (universal part-level fields).
         p.meta("part_number", "Anreak N20-16RPM worm w/ encoder")
         p.meta("vendor", "Anreak")
-        p.meta("electrical_voltage_nominal_v", 12.0)
-        p.meta("electrical_voltage_min_v", 3.0)
-        p.meta("electrical_voltage_max_v", 12.0)
+        p.meta("shaft_diameter_mm", 3)
+        p.meta("shaft_length_mm", 10)
+        # Typed sim-contract fields — dotted keys group into namespaces in
+        # `mk part export` JSON. Backward-compatible with the flat layout
+        # used elsewhere (e.g. density, color, mass_g_override).
+        p.meta("electrical.voltage_nominal_v", 12.0)
+        p.meta("electrical.voltage_min_v", 3.0)
+        p.meta("electrical.voltage_max_v", 12.0)
+        p.meta("mech.no_load_rpm_at_12v", 16)
+        p.meta("mech.no_load_rpm_at_3v", 4)
+        p.meta("mech.gear_type", "worm")
+        p.meta("mech.self_locking", True)
+        p.meta("mech.double_shaft", True)
+        p.meta("encoder.present", True)
+        # Placeholders the listing didn't specify — fill from datasheet
+        # before trusting controller simulations. Kept flat (not under
+        # electrical.* / mech.* / encoder.*) so reviewers can find them
+        # at a glance without descending into namespaces.
         p.meta("_TODO_electrical_resistance_ohm", None)
         p.meta("_TODO_electrical_back_emf_v_per_krpm", None)
         p.meta("_TODO_electrical_stall_current_a", None)
-        p.meta("mech_no_load_rpm_at_12v", 16)
-        p.meta("mech_no_load_rpm_at_3v", 4)
-        p.meta("mech_gear_type", "worm")
-        p.meta("mech_self_locking", True)
-        p.meta("mech_double_shaft", True)
-        p.meta("shaft_diameter_mm", 3)
-        p.meta("shaft_length_mm", 10)
         p.meta("_TODO_mech_gear_ratio", None)
         p.meta("_TODO_mech_stall_torque_kg_cm", None)
-        p.meta("encoder_present", True)
         p.meta("_TODO_encoder_type", "magnetic_quadrature")
         p.meta("_TODO_encoder_cpr_pre_gear", 7)
         p.meta("density", 7.0)               # average; geometry over-counts hollow body

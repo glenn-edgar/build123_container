@@ -8,8 +8,8 @@ verbatim in §2 below. Working history (what landed when) lives in
 
 ## 0. Where we are
 
-**v1 baselined** 2026-05-09. **Phase A complete; Phase B 3/4 done**
-as of 2026-05-10.
+**v1 baselined** 2026-05-09. **Phase A complete; Phase B essentially done
+(3 of 4 sub-phases shipped)** as of 2026-05-10.
 
 | Phase | Status | What landed |
 |---|---|---|
@@ -18,8 +18,8 @@ as of 2026-05-10.
 | Phase B.1 — revolute/prismatic mates | ✅ | `mate(... mate_type="revolute", axis=, limits=, default=)`. Pure-Python Rodrigues math, host-tested. `tests/fixtures/hinge_demo.py` exercises it. |
 | Phase B.2.a — state-injection at build time | ✅ | `mk build` reads `outputs/<asm>/state.json` (or `--state <path>`). Override + clamping working. |
 | Phase B.2.b — live animation in viewer | ⏳ deferred | needs `<model-viewer>` → three.js swap; ~2–3 days. |
-| Phase B.3 — typed META schema | ⏳ not started | namespaced META keys (`electrical.*`, `mech.*`, `encoder.*`); `mk part export <kb> --json` for sim contract; ~2 days. |
-| Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). 76 host tests pass. |
+| Phase B.3 — typed META schema | ✅ | Dotted META keys (`electrical.voltage_nominal_v`, `mech.gear_ratio`, …) group into namespaces under `meta` in the new `mk part export <kb>` JSON output. Flat keys (density, color, mass_g_override, _TODO_*) stay top-level. Backward-compatible — manifest API unchanged, `mk part show` keeps its row view. window_test motor migrated to the typed schema as a worked example. |
+| Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). |
 | Phase C — layers | ⏳ | per `docs/v2_layers.md`; ~1 wk. |
 | Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF; ~1.5 wk. |
 
@@ -28,45 +28,51 @@ phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** With B.4 done (URDF export), Phase B is 3/4
-finished. The remaining two B items plus Phase C are all on the table:
+**Read this first.** With B.3 (typed META) and B.4 (URDF export) both
+in, Phase B is effectively done — only B.2.b (live JS animation)
+remains, and that's a pure viewer rewrite. The natural next step is
+**Phase C (layers)**, which Phase D (engineering drawings → DXF)
+depends on.
 
-1. **Phase B.3 — typed META schema** (~2 days). Namespaced META keys
-   (`electrical.voltage_nominal_v`, `mech.gear_ratio`, `encoder.cpr`)
-   with backward-compat for existing flat keys. Adds `mk part export
-   <kb> --json` so the controller-under-test code consumes a structured
-   sim-contract document. Completes the "make the rig sim-consumable"
-   arc that B.4 started (URDF = kinematics, META JSON = electrical/mech).
+1. **Phase C — layers** (~1 week) **[my pick]**. LAYER sentinel +
+   visibility filter per `docs/v2_layers.md`. Sub-phases C.1 (sentinel
+   + tagging, ~2d), C.2 (CLI: `mk layer ls/set/all/color`, ~1d), C.3
+   (per-command visibility policy: show/export gltf exclude hidden,
+   step/dxf include with metadata, mass/bom default-include with
+   `--respect-layers` flag, ~2d), C.4 (STEP roundtrip via XCAF
+   layer tool, ~1d). New feature work — no refactor risk. Unblocks D.
 
-2. **Phase C — layers** (~1 week). LAYER sentinel + visibility filter
-   per `docs/v2_layers.md`. Adds `mk layer ls/set/all/color`, threads
-   through `mk show`, `mk export step`, `mk mass`, `mk bom`. Phase D
-   (drawings → DXF) genuinely depends on this. Pure new-feature work.
-
-3. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
+2. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
    `<model-viewer>` with direct three.js so the scene graph can be
    updated from `state.json` polling without rebuilding. Pure
-   frontend rewrite; B.2.a state format and override logic stay.
+   frontend rewrite; B.2.a state format and override logic stay. Can
+   be done any time independently — no dependency on C or D.
 
-My pick: **B.3**, then **C**. B.3 closes Phase B cleanly and is the
-last sim-contract piece. Then Phase C opens the road to engineering
-drawings (D).
+3. **Phase D — engineering drawings** (~1.5 weeks). DXF export via
+   HLR ortho-view projection. Depends on C for DXF layer mapping. Plan
+   in `docs/v2_plan.md` §D.
 
-**State of the repo**: clean working tree, `main` at the most recent
-B.4 commit. Docs live at
+My pick: **C**, then D. C is the longest unbroken stretch of pure
+new-feature work left in the v2 plan; D rounds out the
+deliverable-artifact story (URDF + STEP + DXF + JSON sim-contract).
+B.2.b is a fine swap if a UI day feels right.
+
+**State of the repo**: clean working tree (assuming this session's
+B.3 commit lands), `main` at the most recent commit. Docs live at
 https://glenn-edgar.github.io/build123_container/. mkdocs venv at
 `.venv/` (also has pytest installed).
 
-**Quick verification command** to make sure everything still works:
+**Quick verification commands** to make sure everything still works:
 ```bash
-.venv/bin/pytest tests/                          # 76 host tests, ~60 ms
-docker compose run --rm cad build asm_window_test     # rigid-only smoke
-docker compose run --rm cad export asm_window_test urdf   # B.4 smoke
-docker compose run --rm cad export asm_hinge urdf         # revolute smoke
+.venv/bin/pytest tests/                                   # 100 host tests, ~90 ms
+docker compose run --rm cad build asm_window_test          # rigid-only smoke
+docker compose run --rm cad export asm_window_test urdf    # B.4 smoke
+docker compose run --rm cad export asm_hinge urdf          # revolute smoke
+docker compose run --rm cad part export part_n20_worm_motor_16rpm  # B.3 smoke
 ```
 
 URDF output lives at `outputs/<asm>/<asm>.urdf` + `outputs/<asm>/meshes/`.
-See §10 (new) for the URDF conventions.
+See §10 for URDF conventions; §11 for the typed META schema.
 
 ## 1. Definition of done — v1 ✅
 
@@ -388,5 +394,67 @@ the URDF or override per-tool.
 - Real ROS tool verification (urdf_viz, RViz, Gazebo). The XML
   parses cleanly and the tree is well-formed; downstream importability
   not exercised this session.
-- Effort/velocity limits from typed META (waits on Phase B.3).
+- Effort/velocity limits from typed META — could read these from
+  Phase B.3's `mech.*` namespace (e.g. `mech.stall_torque_kg_cm`,
+  `mech.no_load_rpm_at_12v`) but URDF still emits placeholders today.
 - `<gazebo>` extension blocks for friction / contact tuning.
+
+## 11. Typed META schema (Phase B.3) — conventions
+
+Manifests can now use dotted META keys like
+`electrical.voltage_nominal_v` or `mech.gear_ratio`. The dot splits
+the name into hierarchical segments:
+
+```python
+p.meta("electrical.voltage_nominal_v", 12.0)
+p.meta("electrical.voltage_min_v", 3.0)
+p.meta("mech.gear_ratio", 100.0)
+p.meta("density", 7.85)        # flat — stays top-level
+```
+
+Backward-compatible: the manifest API didn't change, `mk part show`
+keeps its row-oriented display, and existing flat-name parts work
+unchanged. Only the new `mk part export <kb>` consumer relies on
+the tree shape.
+
+**`mk part export <kb>`** emits a structured JSON document for
+consumption by controller code (sim contract). Output shape:
+
+```json
+{
+  "kb": "part_n20_worm_motor_16rpm",
+  "description": "...",
+  "params": { "body_d": 12, ... },
+  "joints": {
+    "body_center": {"origin": [0,0,0], "z_dir": [-1,0,0]},
+    ...
+  },
+  "meta": {
+    "density": 7.0,            // flat keys stay at top
+    "color": "#5a6573",
+    "electrical": {            // dotted keys nest
+      "voltage_nominal_v": 12.0,
+      "voltage_min_v": 3.0,
+      "voltage_max_v": 12.0
+    },
+    "mech": { "gear_type": "worm", ... },
+    "encoder": { "present": true },
+    "_TODO_electrical_resistance_ohm": null,
+    ...
+  }
+}
+```
+
+Default output is stdout, pretty-printed (2-space indent). Flags:
+- `--out <path>` writes to file
+- `--compact` single-line JSON
+
+**Worked example**: `part_n20_worm_motor_16rpm` in `window_test.py`
+demonstrates the convention. Its `electrical.*`, `mech.*`, and
+`encoder.*` namespaces group together; placeholders kept under
+`_TODO_*` top-level so reviewers can find them at a glance.
+
+**Conflict detection**: A flat key and a namespace cannot share a
+path. `meta("electrical", 12.0)` and `meta("electrical.voltage", 5.0)`
+raise `MetaTreeConflictError` at export time. Duplicate keys raise
+the same error.
