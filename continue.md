@@ -66,6 +66,11 @@ honest next move is to use what's built and let real-use friction
 drive v3 priorities. If you want one more polish phase first, B.2.b
 is the highest-leverage of the open items.
 
+**Evaluation completed in this session** — see `docs/v2_evaluation.md`
+for the prioritized friction log (23 items + 3 surprises). Quick-win
+items are batched at the top; the biggest single ask is a real BOM
+(item #1, ~1d).
+
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at
 https://glenn-edgar.github.io/build123_container/.
