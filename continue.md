@@ -87,6 +87,15 @@ new work (find what hurts in *real* use of the polished tool), or
 pick one of the three deferred-by-decision items if the timing's
 right. The prototype is in a clean state to support either.
 
+**Round-2 evaluation completed in this session** (the author's-path
+exercise). Scaffolded `part_coupler` + `asm_coupler_demo` from
+scratch using `mk part new`. Surfaced 5 new friction items, the
+most interesting being **R2.3: rigid mate always rotates child to
+align z-dirs** — users wanting pure-translation mating (fastener
+into hole, pin into bushing) can't express it. Worth a design pass
+on `mate(... align="z" | "position")` before coding. Full findings
++ priorities in `docs/v2_evaluation.md` round-2 section.
+
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at
 https://glenn-edgar.github.io/build123_container/.

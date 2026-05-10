@@ -30,6 +30,137 @@ That's the whole list. The prototype is in a clean state for the
 "build real parts, drive v3+" cycle — pause the polish loop, exercise
 the tool on actual work, and let the next round of friction surface.
 
+---
+
+## Round-2 evaluation — author's-path exercise (2026-05-10)
+
+The round-1 evaluation exercised the reader's path: every read-side
+command on existing models. Round 2 exercises the **writer's path**:
+`mk part new`, edit the manifest, apply, mate into an assembly.
+
+Worked example: scaffolded a new `part_coupler` (drag-link bar with
+two pivot holes), edited the manifest with typed META, then wrote a
+new `asm_coupler_demo` that mates it onto the lever tip of the
+window-test rig. Five-inst assembly with two layer groups
+(`fixed_structure`, `mechanism`). Full author's loop took ~5 minutes.
+
+### New friction items
+
+#### R2.1 `mk part new` scaffold predates the typed META schema (~30min)
+
+The generated manifest uses flat `p.meta("density", 7.85)` /
+`p.meta("material", "steel")`. A user following the template won't
+discover the dotted-namespace pattern (`electrical.voltage_nominal_v`,
+`mech.max_load_n`, ...) unless they read `window_test.py`. The
+scaffold should include a commented-out example:
+
+```python
+# Typed sim-contract fields (optional; namespaced with dots):
+# p.meta("electrical.voltage_nominal_v", 12.0)
+# p.meta("mech.max_load_n", 25.0)
+```
+
+Also worth surfacing: `mass_g_override` for hollow / composite parts
+where volume × density over-counts.
+
+#### R2.2 No `mk asm new` (~1h)
+
+Mirrors the v2-evaluation #6 finding (`mk asm list`) but for the
+creator-side. To write `asm_coupler_demo.py` I had to copy from
+existing fixtures. A scaffold:
+
+```bash
+mk asm new coupler_demo --template flat
+# writes a starter manifest with:
+#   one inst, no mates, comments showing inst()/sub()/mate() syntax
+```
+
+Round 1 closed #6 (list) but missed the symmetric `new` gap.
+
+#### R2.3 Rigid mate always rotates child to align z-dirs (~1d? design call)
+
+Most user-visible surprise of round 2. Writing the coupler-to-lever
+mate, the lever.tip joint has `z_dir=[1,0,0]` (out in +X); the
+coupler.motor_end has `z_dir=[0,1,0]` (up). Rigid mate aligns
+joint_a's z to -joint_b's z, so the coupler rotates 90° about Z
+relative to its part-local frame.
+
+The mate solver does what the spec says. But users writing a
+fastener-into-hole or pin-into-bushing mate often **just want
+translation** — keep the part's existing orientation, just put
+joint A at joint B. Today's API doesn't express that.
+
+Suggested fix: an optional flag on `mate()`:
+
+```python
+a.mate("c", joint_a=..., joint_b=..., mate_type="rigid",
+       align="z"            # default — align z-dirs as today
+       # align="position"   # only translate joint_a to joint_b origin
+       )
+```
+
+Real engineering use cases want both. Worth designing properly
+rather than tacking a flag on.
+
+#### R2.4 Bbox extents show world-frame, not part-frame (~1h)
+
+`mk measure` reports `coupler extent=8.00×40.00×2.00` after the
+coupler is rotated 90° about Z. The author declared `length=40`
+along X in part-local — but world-frame Y is now 40. Both numbers
+are legitimate but the world-frame extent is what `measure` shows
+without labeling. Adding a per-inst `extent (part-local)` line, or
+labeling the existing one as "world-frame", would clarify.
+
+#### R2.5 Joint `z_dir` semantics not documented in `mk part show` output (~15min)
+
+`mk part show` lists `z_dir=[0, 1, 0]` per joint after this round's
+fix. But what does z_dir *mean*? It's the joint frame's z-axis (the
+direction the rigid mate flips against). New users won't know that
+from looking at the output. A one-line legend at the top of the
+JOINT section ("`z_dir` = joint normal; rigid mates align A's z to
+−B's z") would explain it.
+
+### Validated round-1 fixes (positive findings)
+
+- `mk part show` grouped sections + nested META look great on the
+  new part. `mech.*` namespace shows cleanly indented.
+- `mk part new` → edit → apply → build → export sequence is fast
+  (~5 min for a non-trivial part) thanks to the polished error
+  messages.
+- `mk measure` mate-coincidence sanity caught 4/4 mates as OK on
+  the new assembly — good baseline for spotting future regressions.
+- URDF short link names land for the new flat assembly:
+  `bracket`/`coupler`/`lever`/`motor`/`sheet` instead of the v2-era
+  `asm_coupler_demo__INST__bracket` form.
+- Layer toggle workflow on the new assembly (3 layers, with
+  per-mate visibility) is intuitive. State preservation
+  across re-apply works invisibly.
+- `mk part export` JSON correctly nests the new `mech.*` keys
+  under a `mech` namespace.
+- `mk state ls` on a rigid-only assembly correctly identifies
+  it as "no revolute or prismatic mates" — no spurious warnings.
+
+### What still hurts but is out-of-scope
+
+- DXF still emits LWPOLYLINEs for every edge (the 396 KB asm_coupler
+  _demo.dxf bears this out — most of it is hidden-edge facet
+  geometry from the motor body). Real LINE/ARC entities would
+  shrink this significantly. Carried forward from the v3 round-1
+  open list (DXF polish, ~1d).
+- The OCC STEP XCAF multi-shape-layer bug still drops layer info
+  during STEP export. Same documented limitation.
+
+### Round-2 priorities
+
+If a v3 round 3 cycle starts:
+1. **R2.3 align option on rigid mates** — biggest user-visible gap;
+   needs design discussion before coding.
+2. **R2.1 + R2.2 scaffold updates** — quick (~1h combined). Adds
+   `mk asm new` and updates `mk part new` template to mention
+   typed META.
+3. **R2.4 part-frame bbox in measure** — minor; can wait.
+4. **R2.5 z_dir legend** — trivial doc tweak.
+
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
 
