@@ -22,60 +22,69 @@ verbatim in §2 below. Working history (what landed when) lives in
 | Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). |
 | Phase C.1+C.2 — layer data model + CLI | ✅ | `LAYER.<name>` sentinel + `properties.layer` tags on INST/SUB. SUB inheritance with multi-tag union (`leaf_set ∪ ancestor_set`). Auto-create on first reference; state preserved across `mk apply` re-runs. `mk layer ls/set/all/color` CLI. Bool visibility (tri-state deferred to v3 per design doc). |
 | Phase C.3 — per-command visibility filter | ✅ | `mk show` and `mk export stl` filter out hidden insts; `mk export step/brep/urdf` and `mk build` always include all; `mk mass`/`mk bom` default-include with `--respect-layers` flag for opt-in filtering. Filtered commands log the skip count. |
-| Phase C.4 — STEP XCAF roundtrip | ⚠️ partial | `mk export step` now uses STEPCAFControl_Writer + XCAF doc model. **Colors round-trip cleanly** (META.color → STEP COLOUR_RGB → FreeCAD/etc.). **Layers are best-effort**: OCC 7.8.1.1's writer emits at most one shape per `PRESENTATION_LAYER_ASSIGNMENT` and drops multi-tag shapes entirely. Single-tag distinct-name cases mostly survive; same-layer-on-many-shapes loses all but one. Documented in `src/mk/step_xcaf.py`. Phase D (DXF) can sidestep this by attaching layers directly via ezdxf. |
-| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF (uses Phase C layer mapping via ezdxf, not via STEP); ~1.5 wk. |
+| Phase C.4 — STEP XCAF roundtrip | ⚠️ partial | `mk export step` now uses STEPCAFControl_Writer + XCAF doc model. **Colors round-trip cleanly** (META.color → STEP COLOUR_RGB → FreeCAD/etc.). **Layers are best-effort**: OCC 7.8.1.1's writer emits at most one shape per `PRESENTATION_LAYER_ASSIGNMENT` and drops multi-tag shapes entirely. Documented in `src/mk/step_xcaf.py`. |
+| Phase D.1+D.2 — engineering drawings → DXF | ✅ | `mk export <asm> dxf` writes a 4-view (top/front/right/iso) third-angle drawing via HLR projection. Visible edges on `MK_VISIBLE`, hidden on `MK_HIDDEN` (DASHED). Title block from META.part_number/vendor + assembly description. Edges discretized as LWPOLYLINEs (~24 segs/edge); exact-line/arc preservation is a polish step. |
+| Phase D.3+D.4 — PDF wrap | ⏳ optional | `ezdxf.addons.drawing` → PDF (D.3) or direct SVG-based PDF (D.4). The v2_plan calls these optional; `dxf2pdf` externally or FreeCAD TechDraw fills the gap until needed. |
 
 `docs/v2_plan.md` is the long-form v2 commitment. `HISTORY.md` is the
 phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** Phase B done, Phase C effectively done (C.1+C.2
-clean, C.3 clean, C.4 partial — colors roundtrip, layer write is OCC-
-limited and documented). The natural next move is **Phase D —
-engineering drawings**, the last unbuilt phase in the v2 plan.
+**Read this first.** v2 plan is effectively complete. All four phases
+(A, B, C, D) have shipped their must-haves; the remaining items are
+optional or low-priority. Three candidates if you want to keep
+extending the prototype:
 
-1. **Phase D — engineering drawings → DXF** (~1.5 weeks) **[my pick]**.
-   Per `docs/v2_plan.md` §D: HLR ortho-view projection via
-   `HLRBRep_Algo` / `HLRBRep_PolyAlgo` → visible/hidden edge sets →
-   project to 2D Sketch → emit DXF via ezdxf with proper layer
-   mapping (visible / hidden / mk-cad-defined). Title block from
-   META.part_number, vendor. Optional PDF wrap via
-   `ezdxf.addons.drawing`. Sub-phases D.1–D.4 are spelled out.
+1. **Phase B.2.b — live JS animation** (~2–3 days) **[my pick if any]**.
+   Last unbuilt B sub-phase. Replaces `<model-viewer>` with direct
+   three.js so the scene updates from `state.json` polling without
+   rebuilding. B.2.a's format and override logic are already in
+   place — pure viewer rewrite. Most concrete leverage of any open
+   item: makes the controller-in-the-loop story feel alive.
 
-2. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
-   `<model-viewer>` with three.js so the scene graph updates from
-   `state.json` polling. Independent of Phase D.
+2. **Phase D.3+D.4 — PDF wrap** (~3 days, optional in v2 plan).
+   `ezdxf.addons.drawing` renders DXF to matplotlib → PDF. Drop-in
+   if it works cleanly; the DXF is the real engineering artifact
+   anyway and FreeCAD TechDraw / external `dxf2pdf` already fill the
+   gap.
 
-3. **C.4 hardening — multi-shape layer write**. If the STEP-layer
-   limitation becomes a real friction point (e.g., a downstream tool
-   refuses to ingest the file), the workaround is post-processing
-   the STEP file to inject additional `PRESENTATION_LAYER_ASSIGNMENT`
-   entries. Defer until someone hits it.
+3. **DXF polish** — preserve exact lines + arcs instead of polyline
+   discretization. Current emitter writes every edge as a 24-segment
+   LWPOLYLINE; downstream tools handle that fine but a true LINE
+   entity for straight edges and ARC entity for circles would
+   produce cleaner geometry. ~1 day.
 
-My pick: **Phase D**. Finishes the v2 plan, and the layer primitive
-from C.3 plus the design-doc DXF layer map gives us everything we
-need to wire it up cleanly.
+4. **Evaluation phase** (per `continue.md` §4). Build a small library
+   of real parts, exercise the API, and write down friction. v3
+   priorities come from this list. The §4 list above hasn't been
+   exercised since v1 baseline — the cycle since has been pure
+   feature work.
+
+My pick: **#4 (evaluation) or #1 (B.2.b)**. v2's scope is done; the
+honest next move is to use what's built and let real-use friction
+drive v3 priorities. If you want one more polish phase first, B.2.b
+is the highest-leverage of the open items.
 
 **State of the repo**: clean working tree (assuming this session's
-C.3+C.4 commit lands), `main` at the most recent commit. Docs at
+D.1+D.2 commit lands), `main` at the most recent commit. Docs at
 https://glenn-edgar.github.io/build123_container/.
 
 **Quick verification commands**:
 ```bash
-.venv/bin/pytest tests/                                       # 141 host tests, ~110 ms
+.venv/bin/pytest tests/                                        # 150 host tests, ~120 ms
 docker compose run --rm cad layer ls asm_nested                # 5 layers + counts
-docker compose run --rm cad layer set asm_nested emi off
-docker compose run --rm cad mass asm_nested                    # default: include all → 4 g
-docker compose run --rm cad mass asm_nested --respect-layers   # filter → fewer g
-docker compose run --rm cad export asm_nested step             # XCAF: color preserved
+docker compose run --rm cad mass asm_nested                    # default: include all
+docker compose run --rm cad mass asm_nested --respect-layers   # filter
+docker compose run --rm cad export asm_nested step             # color preserved
+docker compose run --rm cad export asm_nested dxf              # 4-view drawing
 docker compose run --rm cad show asm_nested                    # viewer filters hidden
 docker compose run --rm cad export asm_window_test urdf        # B.4 still works
 docker compose run --rm cad part export part_n20_worm_motor_16rpm  # B.3 still works
 ```
 
-See §10 for URDF, §11 for typed META, §12 for layers, §13 for the
-STEP+XCAF caveat.
+See §10 URDF, §11 typed META, §12 layers, §13 STEP+XCAF caveat,
+§14 DXF drawings.
 
 ## 1. Definition of done — v1 ✅
 
@@ -541,5 +550,69 @@ is visible if *any* of its effective layers is visible.
   tag info is lost.
 - Multi-shape-per-layer (e.g., all DEFAULT) gets only the last
   shape's assignment in the STEP file — known OCC issue.
-- Phase D's DXF export will sidestep this by attaching layers
-  directly via ezdxf, which we control end-to-end.
+- Phase D's DXF export sidesteps this entirely by attaching layers
+  directly via ezdxf, which we control end-to-end (see §14).
+
+## 14. Phase D.1+D.2 — engineering drawings (DXF)
+
+`mk export <asm> dxf` writes `outputs/<asm>.dxf` containing four
+views of the assembly in standard third-angle layout:
+
+```
++-----+   +-----+
+| TOP |   | ISO |
++-----+   +-----+
++-----+   +-----+
+|FRONT|   |RIGHT|
++-----+   +-----+
+              +------------------+
+              | TITLE BLOCK      |
+              | assembly | desc  |
+              | part_no  | vendor|
+              +------------------+
+```
+
+**HLR pipeline** (src/mk/hlr.py):
+- Each inst's BREP at its mate-resolved location → combined
+  `TopoDS_Compound`.
+- `HLRBRep_Algo.Update()` + `.Hide()` per view direction →
+  `HLRBRep_HLRToShape` extractor splits edges into visible / hidden
+  (sharp + tangent + silhouette buckets unioned).
+- Edges in OCC's 3D output are projected to 2D via
+  `project_to_2d()`: `right = look × up` (third-angle convention,
+  scene +X appears on viewer's left in front view), screen-y = up.
+
+**DXF emission** (src/mk/dxf.py):
+- 4 layers: `MK_VISIBLE` (continuous, default color), `MK_HIDDEN`
+  (DASHED, color 8), `MK_TITLE`, `MK_BORDER`.
+- Each edge discretized to a 24-segment LWPOLYLINE. Sufficient for
+  most CAD viewers; exact line/arc preservation is a follow-up
+  polish item (~1 day).
+- Title block reads `META.part_number` and `META.vendor` from the
+  first INST's referenced part; assembly description from KB info.
+- ezdxf header `$INSUNITS = 4` → millimetres.
+
+**Per-command layer policy**: include-all (engineering-bound per
+Phase C.3). The mk-cad LAYER state from Phase C doesn't currently
+map to DXF layers; if downstream toolchains want per-mk-cad-layer
+edge segregation in the DXF, the emitter would route edges through
+`partition_by_visibility` and emit per-layer DXF layers. Hasn't
+been requested yet.
+
+**Smoke verifications**:
+- `asm_nested` (4 cubes): 78 MK_VISIBLE polylines + 66 MK_HIDDEN
+  + title block, 143 KB.
+- `asm_window_test` (5 parts, includes curved motor body): 94 +
+  348 + title block, 370 KB. Hidden line count dominated by
+  cylinder/encoder facet edges.
+- Roundtrip via `ezdxf.readfile` confirms layer assignments and
+  `$INSUNITS = 4` (mm) preserved.
+
+**Not yet covered**:
+- D.3 (`ezdxf.addons.drawing` → PDF). Optional per v2_plan. A
+  `dxf2pdf` external pass or FreeCAD TechDraw fills the gap.
+- Exact line / circle / arc entity preservation. The discretizer
+  treats every curve uniformly. Real LINE / ARC entities would
+  cut file size and improve fidelity.
+- Per-mk-cad-layer DXF layer mapping (currently flat MK_VISIBLE
+  / MK_HIDDEN regardless of which mk-cad layer each part is on).

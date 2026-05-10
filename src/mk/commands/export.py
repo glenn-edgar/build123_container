@@ -18,7 +18,7 @@ DEFAULT_OUTDIR = "/project/outputs"
 def add_parser(subparsers) -> None:
     p = subparsers.add_parser("export", help="Export assembly geometry.")
     p.add_argument("asm_kb")
-    p.add_argument("format", choices=["step", "stl", "brep", "urdf"])
+    p.add_argument("format", choices=["step", "stl", "brep", "urdf", "dxf"])
     p.add_argument("--db", default=DEFAULT_DB_PATH)
     p.add_argument("--outdir", default=DEFAULT_OUTDIR)
     p.set_defaults(func=run)
@@ -68,6 +68,17 @@ def run(args: argparse.Namespace) -> int:
         from mk.step_xcaf import export_step_xcaf
         try:
             export_step_xcaf(conn, args.asm_kb, rows, out_path)
+        except RuntimeError as e:
+            print(f"  ERR: {e}", file=sys.stderr)
+            conn.close()
+            return 1
+    elif args.format == "dxf":
+        # Phase D: HLR-based engineering drawing — 4 views + title block.
+        # Has its own DB-driven pipeline (HLR over a combined shape), so
+        # no build123d Compound needed.
+        from mk.dxf import export_dxf
+        try:
+            export_dxf(conn, args.asm_kb, rows, out_path)
         except RuntimeError as e:
             print(f"  ERR: {e}", file=sys.stderr)
             conn.close()
