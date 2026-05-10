@@ -231,6 +231,130 @@ text-parse of the file.
 After this, only the **`<model-viewer>` CDN dependency** (surprise C)
 remains as a non-blocking carry-over. v3 polish is genuinely done.
 
+---
+
+## Round-3 evaluation — new-tooling shakedown (2026-05-10)
+
+Scope: validate the v3 round-1, round-2, and round-3 fixes from a
+fresh user's perspective. Built `part_mount_panel` + `part_button` +
+`asm_button_panel_test` from scratch using the compose.dev.yaml
+overlay throughout.
+
+### Validated (round-2 and round-3 fixes that held up)
+
+- `mk part new` scaffold's commented typed-META examples are
+  directly useful — copy-paste-edit, no doc lookup needed.
+- `mk asm new --template with_sub` scaffolds correctly; the
+  default mate template line shows both `align="z"` and the
+  newer `align="position"` choice inline.
+- `mk part show` grouped sections render the new typed META
+  cleanly (`electrical.contact_rating_a`, `mech.actuation_force_n`).
+- z_dir legend in `mk part show` JOINT section is concise and
+  immediately answers "what does z_dir mean".
+- STEP roundtrip via the post-processor:
+  `{'electrical': 1, 'frame': 1}` for the new 2-inst assembly —
+  multi-layer write-and-read works end-to-end.
+- `mk measure` mate-coincidence sanity caught 1/1 OK after build.
+- `mk show` layer-state line announces "on layers [...] (all visible)".
+- `compose.dev.yaml` overlay: edits to `src/mk/*.py` are picked
+  up without `docker compose build`. No rebuild needed for any
+  iteration during this exercise.
+
+### New friction items
+
+#### R3.1 Container startup is ~8s per command (~hard problem)
+
+Even with the dev overlay, every `mk ...` invocation takes ~8s to
+spin up the container (verified across `mk part new`, `mk apply`,
+`mk build`, `mk show`). This is qemu-amd64 emulation overhead on
+aarch64 hosts; out of scope for compose.yaml fixes. A persistent
+shell or REPL-mode would amortize the startup. Carry-forward, not
+a regression. **Effort**: substantial — needs an interactive
+container or `mk repl` subcommand.
+
+#### R3.2 `mk asm new --template with_sub` references `part_unit_box` (~15min)
+
+The with_sub scaffold uses `ref_kb="part_unit_box"` for its
+`piece_a`/`piece_b` insts, expecting `face_pos`/`face_neg` joints.
+A new user running the scaffold's "next: mk apply ... && mk build"
+hint will get `no such part: part_unit_box` if `box_unit.py` hasn't
+been applied. Either:
+- Bundle `part_unit_box` as part of `mk init` (auto-apply a tiny
+  starter library), or
+- Use a placeholder `ref_kb="TODO_apply_a_part_first"` and have
+  the scaffold print a warning, or
+- Add `# Run `mk apply box_unit.py` first to get part_unit_box`
+  as a top-line comment in the scaffold.
+
+Lightweight, but the friction is real for first-time users.
+
+#### R3.3 Joint origins are hard-coded literals, not param-expressed (~design)
+
+In `part_button`, the `seat` joint is at `origin=[0, 0, 4]`. The 4
+is `shaft_l / 2` for `shaft_l=8`. If the user changes `shaft_l` to
+10, the joint stays at z=4 but should track to z=5. This is a real
+API limitation: **joint origins can't be lambdas-of-params**
+because the manifest is declarative and joints are eagerly written.
+
+Workarounds:
+- Compute joint coords at scaffold time, document as "edit if you
+  change params" (current state).
+- Allow `p.joint("seat", origin=lambda p: [0, 0, p["shaft_l"] / 2])`
+  — but that requires deferring joint storage until after the
+  builder has params resolved, which crosses our IaC apply-time vs
+  build-time semantics.
+- Allow `origin="@(0, 0, shaft_l/2)"` — a string mini-DSL evaluated
+  per-inst with the inst's resolved params. More complex but stays
+  declarative.
+
+v3-deferred. Real but not urgent.
+
+#### R3.4 Walrus-in-list-literal silent bug (Python language, not mk)
+
+Wrote `origin=[0, 0, p_value := 4]` and the parser accepted it.
+The walrus expression evaluates to 4, so it happened to be
+correct in this case — but it's a code-smell that nothing in our
+tooling catches. Lint config wouldn't help here. Note only; no
+mk-cad action.
+
+#### R3.5 `mk show` layer-state line includes 0-inst layers (~5min)
+
+Sample output for the round-3 asm where panel is on `frame` and
+button is on `electrical`:
+
+    layer state: 2 inst(s) on layers ['DEFAULT', 'electrical', 'frame']
+      (all visible)
+
+`DEFAULT` has zero insts attached — it shouldn't appear in the
+"on" list. The filter `visible_names` should also require
+`counts.get(name, 0) > 0`.
+
+#### R3.6 Build123d face-center coords require mental math (~design)
+
+To define a joint at "the bottom face of the cap", I had to
+mentally compute `cap_position_z - cap_thickness / 2`. build123d
+has `Face.center()` etc. for already-built shapes; for the
+manifest-time joint declarations, there's no equivalent. Could
+imagine an API like `p.joint_at_face(...)` that queries the
+built shape's faces. Out of scope for current iteration.
+
+### Summary
+
+Round 3 surfaced 6 items but most are smaller or design-call:
+- R3.5 is a real quick win (~5min).
+- R3.2 is a scaffold polish (~15min).
+- R3.1 (container startup) and R3.3 (joint param expressions)
+  and R3.6 (face-aware joints) are design-deferral territory.
+- R3.4 is not actionable in mk-cad.
+
+The major round-3-validated win: the **dev iteration loop is no
+longer rebuild-bound**. Edits to `src/mk/` reflected immediately,
+making each fix-and-test cycle ~30s shorter than before.
+
+After this round, the *small actionable items* are R3.5 (mk show
+layer filter) and R3.2 (scaffold ref_kb placeholder). Worth
+closing before the next eval cycle.
+
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
 

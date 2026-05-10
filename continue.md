@@ -106,6 +106,29 @@ deferred (BOM rewrite, diff apply, STEP determinism) and three
 documented surprises (OCC writer bug, container rebuild loop,
 model-viewer CDN dependency).
 
+**Two surprises landed in v3 round-3** (commit `5b8b57c`):
+- Surprise B (container rebuild loop) — `compose.dev.yaml` bind-
+  mounts `src/mk` for instant iteration; opt-in.
+- Surprise A (OCC STEP XCAF multi-shape-layer bug) — text post-
+  processor in `step_xcaf.py::_rewrite_layer_assignments`.
+  Multi-shape and multi-tag both roundtrip cleanly now.
+- Surprise C (`<model-viewer>` CDN) is the only remaining
+  documented carry-over.
+
+**§4 round-3 evaluation** (post commit, same session). Built
+`mount_panel + button + button_panel_test` from scratch using the
+new tooling. Validated that round-1, round-2, round-3 fixes hold
+up in practice. 6 new items found (R3.1–R3.6), most smaller or
+design-deferral; only two are actionable quick wins:
+- **R3.2**: with_sub scaffold references `part_unit_box` without
+  documenting that the user needs to apply it first (~15min)
+- **R3.5**: `mk show` layer-state line includes 0-inst layers in
+  the "on" list (~5min)
+
+Other R3 items: R3.1 container startup (~hard, needs REPL), R3.3
+joint origins not param-expressed (design), R3.6 face-aware joint
+API (design), R3.4 not mk-cad-actionable.
+
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at
 https://glenn-edgar.github.io/build123_container/.
