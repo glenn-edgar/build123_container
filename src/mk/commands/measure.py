@@ -7,7 +7,8 @@ Reports:
 - Joint frames in world coords for every INST.
 - Optional --distance <joint_path> <joint_path> for a specific measurement.
 
-Joint paths use the same shape as MATE rows: `<asm>.INST.<inst>.JOINT.<joint>`.
+Joint paths use the same shape as MATE rows:
+``<asm>[.SUB.<sub>...].INST.<inst>.JOINT.<joint>``.
 """
 from __future__ import annotations
 
@@ -78,14 +79,14 @@ def _apply_trsf_to_vec(trsf, vec: list[float]) -> list[float]:
 
 def _world_joint_frame(conn, asm_kb: str, joint_path: str) -> tuple[list[float], list[float]]:
     """Resolve a joint path to (origin_world, zdir_world)."""
-    _, inst_name, joint_name = _parse_joint_path(joint_path)
-    ref_kb = _read_inst_ref_kb(conn, asm_kb, inst_name)
+    _, inst_path, _inst_name, joint_name = _parse_joint_path(joint_path)
+    ref_kb = _read_inst_ref_kb(conn, asm_kb, inst_path)
     origin_local, zdir_local = _read_joint_frame(conn, ref_kb, joint_name)
 
     inst_row = conn.execute(
         "SELECT properties FROM knowledge_base "
-        "WHERE knowledge_base = ? AND label = 'INST' AND name = ?",
-        (asm_kb, inst_name),
+        "WHERE knowledge_base = ? AND label = 'INST' AND path = ?",
+        (asm_kb, inst_path),
     ).fetchone()
     location = json.loads(inst_row["properties"]).get("location") if inst_row else None
     trsf = trsf_from_location(location)
@@ -165,6 +166,7 @@ def run(args: argparse.Namespace) -> int:
         joint_rows = conn.execute(
             """
             SELECT i.name AS inst_name,
+                   i.path AS inst_path,
                    json_extract(i.properties, '$.ref_kb') AS ref_kb
             FROM knowledge_base i
             WHERE i.knowledge_base = ? AND i.label = 'INST'
@@ -186,7 +188,9 @@ def run(args: argparse.Namespace) -> int:
                 print("joint frames in world coords")
                 printed_header = True
             for jr in j_rows:
-                joint_path = f"{args.asm_kb}.INST.{ir['inst_name']}.JOINT.{jr['name']}"
+                # Build the full joint path using the inst's ltree path so
+                # SUB-nested insts produce well-formed joint paths.
+                joint_path = f"{ir['inst_path']}.JOINT.{jr['name']}"
                 origin_w, zdir_w = _world_joint_frame(conn, args.asm_kb, joint_path)
                 print(f"  {ir['inst_name']}.{jr['name']:<14}  "
                       f"origin={_fmt_xyz(origin_w)}  z_dir={_fmt_xyz(zdir_w)}")
