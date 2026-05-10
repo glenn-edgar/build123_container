@@ -167,6 +167,38 @@ def run(args: argparse.Namespace) -> int:
               f"extent={ext[0]:.2f}×{ext[1]:.2f}×{ext[2]:.2f}")
     print()
 
+    # Mate-coincidence sanity check. For any well-built assembly every
+    # mate's joint_a and joint_b should be at the same world point
+    # (rigid: by definition; revolute/prismatic: the pivot is shared
+    # with joint_b's origin at DOF=0). Non-zero drift = stale build
+    # or override mismatch.
+    mate_rows = conn.execute(
+        "SELECT name, properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'MATE' ORDER BY name",
+        (args.asm_kb,),
+    ).fetchall()
+    if mate_rows:
+        print("mate coincidence (joint_a vs joint_b world distance)")
+        any_warn = False
+        name_w = max(len(mr["name"]) for mr in mate_rows)
+        for mr in mate_rows:
+            mp = json.loads(mr["properties"])
+            try:
+                oa, _ = _world_joint_frame(conn, args.asm_kb, mp["joint_a"])
+                ob, _ = _world_joint_frame(conn, args.asm_kb, mp["joint_b"])
+            except (ValueError, KeyError, TypeError) as e:
+                print(f"  {mr['name'].ljust(name_w)}  ERR  {e}")
+                continue
+            d = math.sqrt(sum((oa[i] - ob[i]) ** 2 for i in (0, 1, 2)))
+            mate_type = mp.get("mate_type", "rigid")
+            status = "OK" if d < 1e-6 else f"WARN distance={d:.4g} mm"
+            print(f"  {mr['name'].ljust(name_w)}  ({mate_type:<9})  {status}")
+            if d >= 1e-6:
+                any_warn = True
+        if any_warn:
+            print("  ↑ non-zero distance suggests stale build or override mismatch")
+        print()
+
     if not args.no_joints:
         joint_rows = conn.execute(
             """

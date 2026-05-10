@@ -9,14 +9,30 @@ Licensed under the [Mozilla Public License 2.0](LICENSE).
 
 ## Status
 
-**v1 baselined** as of 2026-05-09. All six rev-2 phases verified end-to-end.
-First real-world evaluation scenario — an N20 worm-motor window-controller
-test rig — lives at `project/manifests/window_test.py`. Container,
-viewer, mate-chain composition, per-part colors, `mk part new` scaffold,
-and `mk measure` all green.
+**v2 plan complete** as of 2026-05-10 (a single-day v3 polish pass also
+landed). Phase coverage:
 
-The active backlog is in `continue.md` §9. Phase-by-phase change log is in
-`HISTORY.md`.
+- Phase A — v1.x gaps ✅
+- Phase B.1 revolute/prismatic mates ✅
+- Phase B.2.a build-time state injection ✅
+- Phase B.2.b live JS animation ⏳ deferred (viewer rewrite)
+- Phase B.3 typed META schema + `mk part export` JSON ✅
+- Phase B.4 URDF export ✅
+- Phase C.1+C.2 LAYER sentinel + tagging + CLI ✅
+- Phase C.3 per-command visibility filter ✅
+- Phase C.4 STEP XCAF roundtrip ⚠️ partial (color clean; layer OCC-limited)
+- Phase D.1+D.2 engineering drawings → DXF ✅
+- Phase D.3+D.4 PDF wrap ⏳ optional
+
+The N20 worm-motor window-controller rig at
+`project/manifests/window_test.py` is the working evaluation model;
+`asm_nested` exercises SUB scopes and multi-layer tags.
+
+**v3 friction list** is in `docs/v2_evaluation.md` — 23 items from
+exercising every command on the real model, with a "v3 status"
+header tracking which ones have landed. Forward-plan handoff is in
+`continue.md` §0a. Phase-by-phase change log is in `HISTORY.md` plus
+the commit log.
 
 ## Documentation
 
@@ -60,6 +76,11 @@ docker compose run --rm cad mass asm_window_test
 docker compose run --rm cad bom asm_window_test
 docker compose run --rm cad measure asm_window_test
 docker compose run --rm cad export asm_window_test step
+docker compose run --rm cad export asm_window_test urdf   # ROS / Gazebo / MuJoCo
+docker compose run --rm cad export asm_window_test dxf    # engineering drawing
+docker compose run --rm cad part export part_n20_worm_motor_16rpm  # sim-contract JSON
+docker compose run --rm cad layer ls asm_window_test
+docker compose run --rm cad state ls asm_window_test      # joint-pose overrides
 ```
 
 ## Units

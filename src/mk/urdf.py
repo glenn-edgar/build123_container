@@ -58,6 +58,31 @@ def _sanitize(path: str) -> str:
     return path.replace(".", "__")
 
 
+def _short_link_name(inst_path: str) -> str:
+    """Return just the leaf inst name from an ``<asm>.INST.<inst>`` path.
+
+    Falls back to the sanitized full path if the path has SUB segments
+    (where the leaf alone wouldn't disambiguate across SUBs).
+    """
+    if ".SUB." in inst_path:
+        return _sanitize(inst_path)
+    # Path shape is "<asm>.INST.<leaf>" — split on .INST. for the leaf.
+    if ".INST." in inst_path:
+        return inst_path.rsplit(".INST.", 1)[-1]
+    return _sanitize(inst_path)
+
+
+def _name_for(inst_path: str, can_shorten: bool) -> str:
+    """Pick the link-name spelling based on whether the assembly has SUBs.
+
+    When ``can_shorten`` is True (no SUBs anywhere), use the leaf inst
+    name (``bracket``, ``motor``, ``lever``). Otherwise fall back to
+    the sanitized full path (``asm__SUB__group__INST__pcb``) to
+    preserve disambiguation across SUB scopes.
+    """
+    return _short_link_name(inst_path) if can_shorten else _sanitize(inst_path)
+
+
 def rot_to_rpy(R: list[list[float]]) -> tuple[float, float, float]:
     """3x3 rotation → URDF roll-pitch-yaw (radians), fixed-axis XYZ.
 
@@ -99,8 +124,24 @@ def _compose_inv_a_times_b(
     return rot, trans
 
 
+# Below this magnitude, treat a float as numerical-integration zero. Cleans
+# up the 1e-19 / 1e-24 garbage that OCP's volume properties produce for
+# off-diagonal inertia entries and CoM components of symmetric shapes.
+_FLOAT_NOISE_THRESHOLD = 1e-12
+
+
+def _clean(v: float) -> float:
+    """Threshold float-math noise so URDF output reads cleanly."""
+    return 0.0 if abs(v) < _FLOAT_NOISE_THRESHOLD else float(v)
+
+
+def _f(v: float) -> str:
+    """URDF numeric attribute formatter: threshold noise, then ``%.9g``."""
+    return f"{_clean(v):.9g}"
+
+
 def _xyz_str(xyz: list[float] | tuple[float, ...]) -> str:
-    return f"{xyz[0]:.9g} {xyz[1]:.9g} {xyz[2]:.9g}"
+    return f"{_f(xyz[0])} {_f(xyz[1])} {_f(xyz[2])}"
 
 
 # ── Tree topology ────────────────────────────────────────────────────────────
@@ -123,20 +164,22 @@ def _link_element(
     inertia_kg_m2: list[list[float]],
     mesh_filename: str,
     rgba: tuple[float, float, float, float] | None,
+    link_name: str | None = None,
 ) -> ET.Element:
-    link = ET.Element("link", name=_sanitize(inst_path))
+    name = link_name if link_name is not None else _sanitize(inst_path)
+    link = ET.Element("link", name=name)
 
     inertial = ET.SubElement(link, "inertial")
     ET.SubElement(inertial, "origin", xyz=_xyz_str(com_m), rpy="0 0 0")
-    ET.SubElement(inertial, "mass", value=f"{mass_kg:.9g}")
+    ET.SubElement(inertial, "mass", value=_f(mass_kg))
     ET.SubElement(
         inertial, "inertia",
-        ixx=f"{inertia_kg_m2[0][0]:.9g}",
-        ixy=f"{inertia_kg_m2[0][1]:.9g}",
-        ixz=f"{inertia_kg_m2[0][2]:.9g}",
-        iyy=f"{inertia_kg_m2[1][1]:.9g}",
-        iyz=f"{inertia_kg_m2[1][2]:.9g}",
-        izz=f"{inertia_kg_m2[2][2]:.9g}",
+        ixx=_f(inertia_kg_m2[0][0]),
+        ixy=_f(inertia_kg_m2[0][1]),
+        ixz=_f(inertia_kg_m2[0][2]),
+        iyy=_f(inertia_kg_m2[1][1]),
+        iyz=_f(inertia_kg_m2[1][2]),
+        izz=_f(inertia_kg_m2[2][2]),
     )
 
     for tag in ("visual", "collision"):
@@ -150,7 +193,7 @@ def _link_element(
             scale="0.001 0.001 0.001",
         )
         if tag == "visual" and rgba is not None:
-            mat = ET.SubElement(vis, "material", name=f"{_sanitize(inst_path)}__mat")
+            mat = ET.SubElement(vis, "material", name=f"{name}__mat")
             ET.SubElement(mat, "color", rgba=_xyz_str(rgba[:3]) + f" {rgba[3]:.3g}")
     return link
 
@@ -158,10 +201,13 @@ def _link_element(
 def _joint_element(
     mate: dict,
     origin_xyz_m: list[float], origin_rpy: tuple[float, float, float],
+    *,
+    parent_link: str | None = None,
+    child_link: str | None = None,
 ) -> ET.Element:
     name = _sanitize(mate["name"])
-    parent = _sanitize(mate["b_path"])
-    child = _sanitize(mate["a_path"])
+    parent = parent_link if parent_link is not None else _sanitize(mate["b_path"])
+    child = child_link if child_link is not None else _sanitize(mate["a_path"])
 
     mate_type = mate["mate_type"]
     if mate_type == "rigid":
@@ -204,9 +250,9 @@ def _joint_element(
         # generous placeholders that won't constrain typical sim runs.
         limit_attrs = {"effort": "100", "velocity": "1"}
         if lo is not None:
-            limit_attrs["lower"] = f"{lo:.9g}"
+            limit_attrs["lower"] = _f(lo)
         if hi is not None:
-            limit_attrs["upper"] = f"{hi:.9g}"
+            limit_attrs["upper"] = _f(hi)
         if urdf_type != "continuous":
             ET.SubElement(joint, "limit", **limit_attrs)
 
@@ -293,6 +339,11 @@ def build_urdf(
     inst_by_path = {r["path"]: r for r in inst_rows}
     inst_paths = list(inst_by_path)
 
+    # Flat assemblies get short leaf names (`bracket`, `motor`, `lever`);
+    # SUB-nested ones keep the disambiguating full sanitized path.
+    can_shorten = not any(".SUB." in p for p in inst_paths)
+    name_for = lambda p: _name_for(p, can_shorten)
+
     parsed_mates = _parse_mate_rows(conn, asm_kb)
     # Baseline at DOF=0 — URDF joints define the home pose.
     world_T = compute_world_transforms(
@@ -320,6 +371,11 @@ def build_urdf(
     # Emit links.
     outdir = Path(outdir)
     mesh_dir = outdir / "meshes"
+    # Clear stale STLs from prior runs so name-shortening or removed
+    # parts don't leave orphan files. Cheap (handful of files).
+    if mesh_dir.exists():
+        for old in mesh_dir.glob("*.stl"):
+            old.unlink()
     for row in inst_rows:
         props = json.loads(row["properties"])
         gh = props.get("geom_hash")
@@ -330,7 +386,7 @@ def build_urdf(
                 f"(run `mk build {asm_kb}` first)"
             )
 
-        link_name = _sanitize(row["path"])
+        link_name = name_for(row["path"])
         stl_path = mesh_dir / f"{link_name}.stl"
         export_link_mesh(conn, gh, stl_path)
 
@@ -346,6 +402,7 @@ def build_urdf(
             row["path"],
             props_mass.mass_kg, props_mass.com_m, props_mass.inertia_kg_m2,
             mesh_ref, rgba,
+            link_name=link_name,
         ))
 
     # Fixed joints from `world` to each free root, if synthesized.
@@ -354,13 +411,14 @@ def build_urdf(
             root_rot, root_trans = world_T[root_path]
             origin_xyz_m = [c / 1000.0 for c in root_trans]
             origin_rpy = rot_to_rpy(root_rot)
+            root_name = name_for(root_path)
             j = ET.Element(
                 "joint",
-                name=f"world__to__{_sanitize(root_path)}",
+                name=f"world__to__{root_name}",
                 type="fixed",
             )
             ET.SubElement(j, "parent", link="world")
-            ET.SubElement(j, "child", link=_sanitize(root_path))
+            ET.SubElement(j, "child", link=root_name)
             ET.SubElement(
                 j, "origin",
                 xyz=_xyz_str(origin_xyz_m), rpy=_xyz_str(origin_rpy),
@@ -376,7 +434,11 @@ def build_urdf(
         )
         origin_xyz_m = [c / 1000.0 for c in rel_trans]
         origin_rpy = rot_to_rpy(rel_rot)
-        robot.append(_joint_element(m, origin_xyz_m, origin_rpy))
+        robot.append(_joint_element(
+            m, origin_xyz_m, origin_rpy,
+            parent_link=name_for(m["b_path"]),
+            child_link=name_for(m["a_path"]),
+        ))
 
     ET.indent(robot, space="  ")
     urdf_path = outdir / f"{asm_kb}.urdf"

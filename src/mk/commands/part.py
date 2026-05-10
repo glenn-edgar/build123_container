@@ -23,6 +23,11 @@ def add_parser(subparsers) -> None:
 
     show = part_sub.add_parser("show", help="Show a part KB's contents.")
     show.add_argument("kb_name")
+    show.add_argument(
+        "--json", action="store_true",
+        help="emit structured JSON instead of the grouped text view "
+             "(equivalent to `mk part export <kb>`)",
+    )
     show.add_argument("--db", default=DEFAULT_DB_PATH)
     show.set_defaults(func=run_show)
 
@@ -98,7 +103,17 @@ def run_show(args: argparse.Namespace) -> int:
     via mk.meta_tree (matching `mk part export`), with ``_TODO_*``
     placeholders kept in a separate sub-block so they don't interleave
     with real schema values.
+
+    With ``--json``, dispatches to run_export (same output as
+    `mk part export <kb>`) so users don't need to know both commands.
     """
+    if getattr(args, "json", False):
+        # The export subcommand expects `kb_name` plus optional --out /
+        # --compact. Synthesize those defaults so run_export can route.
+        args.compact = False
+        args.out = None
+        return run_export(args)
+
     from mk.meta_tree import build_meta_tree
 
     conn = open_db(args.db)
