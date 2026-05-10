@@ -69,6 +69,13 @@ def add_parser(subparsers) -> None:
         help="exclude insts on hidden layers (default: include all — "
              "engineering data shouldn't change with viewer state)",
     )
+    # `mk -v mass <asm>` (the global verbose flag) also enables per-inst lines.
+    # A subcommand --per-inst exists so `mk mass <asm> --per-inst` works
+    # without having to put the flag before the subcommand name.
+    p.add_argument(
+        "--per-inst", action="store_true",
+        help="also print per-inst volume / mass / CoM (default: summary only)",
+    )
     p.set_defaults(func=run)
 
 
@@ -101,6 +108,7 @@ def run(args: argparse.Namespace) -> int:
 
     total = GProp_GProps()
     n_inst = 0
+    per_inst_lines: list[str] = []
 
     for r in rows:
         props = json.loads(r["properties"])
@@ -140,11 +148,16 @@ def run(args: argparse.Namespace) -> int:
             tag = f"ρ={density:g}"
 
         total.Add(item, effective_factor)
-
-        com = item.CentreOfMass()
-        print(f"  {r['path']}  {tag}  V={vol_mm3:.3f} mm^3  "
-              f"m={mass_g:.4f} g  com=({com.X():.3f},{com.Y():.3f},{com.Z():.3f})")
         n_inst += 1
+
+        # Capture per-inst details but defer printing until after the
+        # summary unless -v is set. Keeps the "how heavy is this?"
+        # common case to four lines of output.
+        com = item.CentreOfMass()
+        per_inst_lines.append(
+            f"  {r['path']}  {tag}  V={vol_mm3:.3f} mm^3  "
+            f"m={mass_g:.4f} g  com=({com.X():.3f},{com.Y():.3f},{com.Z():.3f})"
+        )
 
     conn.close()
 
@@ -163,7 +176,8 @@ def run(args: argparse.Namespace) -> int:
     a2 = pp.SecondAxisOfInertia()
     a3 = pp.ThirdAxisOfInertia()
 
-    print()
+    # Summary first (the common-case "how heavy is this?" answer).
+    print(f"{args.asm_kb}: {n_inst} inst(s)")
     print(f"total mass:    {total_grams:.4f} g")
     print(f"centre of mass:  ({com.X():.4f}, {com.Y():.4f}, {com.Z():.4f}) mm")
     print(f"inertia tensor (g·mm^2, weighted):")
@@ -174,4 +188,14 @@ def run(args: argparse.Namespace) -> int:
     print(f"principal axes:")
     for label, ax in (("e1", a1), ("e2", a2), ("e3", a3)):
         print(f"  {label} = ({ax.X():.4f}, {ax.Y():.4f}, {ax.Z():.4f})")
+
+    # Per-inst details after the summary, only on --per-inst (or the
+    # top-level -v). Saves the common reader from scrolling past 5+
+    # lines of intermediates.
+    show_per_inst = getattr(args, "per_inst", False) or getattr(args, "verbose", False)
+    if show_per_inst and per_inst_lines:
+        print()
+        print("per-instance breakdown:")
+        for line in per_inst_lines:
+            print(line)
     return 0

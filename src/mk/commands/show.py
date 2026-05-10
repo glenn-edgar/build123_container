@@ -59,10 +59,26 @@ def run(args: argparse.Namespace) -> int:
 
     # Phase C.3: viewer respects layer visibility — hidden parts vanish
     # entirely from the glTF, sidebar, joint hotspots, and mass tally.
-    from mk.layers import partition_by_visibility
+    # Always volunteer the layer breakdown so users opening a sparse
+    # scene know whether it's "build broke" or "layers hidden".
+    from mk.layers import list_layer_rows, partition_by_visibility
+    total_insts = len(inst_rows)
     inst_rows, hidden_count = partition_by_visibility(conn, args.asm_kb, inst_rows)
+
+    layers = list_layer_rows(conn, args.asm_kb)
+    visible_names = sorted(n for n, p in layers if p.get("visible", True))
+    hidden_names = sorted(n for n, p in layers if not p.get("visible", True))
     if hidden_count > 0:
-        print(f"  layer filter: {hidden_count} hidden inst(s) excluded from view")
+        print(
+            f"layer state: {len(inst_rows)}/{total_insts} inst(s) visible — "
+            f"on layers {visible_names}; hidden: {hidden_names}"
+        )
+    else:
+        print(
+            f"layer state: {total_insts} inst(s) on layers {visible_names} "
+            f"(all visible)"
+        )
+
     if not inst_rows:
         print(
             f"no visible INST rows in {args.asm_kb} — every part is on a hidden layer",
