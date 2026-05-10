@@ -297,14 +297,25 @@ def _topo_sort_mates(parsed: list[dict]) -> list[dict]:
     return [parsed[i] for i in order]
 
 
-def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = False) -> int:
-    """Resolve all rigid mates in the assembly. Returns count processed.
+def solve_assembly(
+    conn: sqlite3.Connection,
+    asm_kb: str,
+    *,
+    verbose: bool = False,
+    state_overrides: dict[str, float] | None = None,
+) -> int:
+    """Resolve all mates in the assembly. Returns count processed.
 
     Each mate produces inst_a's transform relative to inst_b's local frame.
     The result is composed with inst_b's already-resolved world transform
     so chains land in correct world coords. Mates fire in topological
     order of the inst-dependency graph; cycles raise ValueError.
+
+    For revolute / prismatic mates, the DOF value comes from
+    ``state_overrides[mate_name]`` if present (Phase B.2 state injection),
+    else ``MATE.properties.default`` from the manifest, else 0.0.
     """
+    state_overrides = state_overrides or {}
     mate_rows = conn.execute(
         "SELECT name, properties FROM knowledge_base "
         "WHERE knowledge_base = ? AND label = 'MATE'",
@@ -366,16 +377,20 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
         mate_type = m["mate_type"]
         if mate_type == "rigid":
             rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
-        elif mate_type == "revolute":
-            angle = _clamp_dof(m["default"] or 0.0, m["limits"], m["name"], "deg")
-            rel_rot, rel_trans = _solve_revolute(
-                ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], angle,
-            )
-        elif mate_type == "prismatic":
-            disp = _clamp_dof(m["default"] or 0.0, m["limits"], m["name"], "mm")
-            rel_rot, rel_trans = _solve_prismatic(
-                ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], disp,
-            )
+        elif mate_type in ("revolute", "prismatic"):
+            # DOF value: state override > manifest default > 0.
+            raw = state_overrides.get(m["name"], m["default"]) or 0.0
+            unit = "deg" if mate_type == "revolute" else "mm"
+            value = _clamp_dof(float(raw), m["limits"], m["name"], unit)
+            m["_dof_value"] = value  # for verbose logging below
+            if mate_type == "revolute":
+                rel_rot, rel_trans = _solve_revolute(
+                    ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], value,
+                )
+            else:
+                rel_rot, rel_trans = _solve_prismatic(
+                    ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], value,
+                )
         else:  # unreachable — filtered upstream
             raise ValueError(f"unknown mate_type {mate_type!r}")
 
@@ -406,9 +421,10 @@ def solve_assembly(conn: sqlite3.Connection, asm_kb: str, *, verbose: bool = Fal
         )
         if verbose:
             type_tag = m["mate_type"]
-            if mate_type in ("revolute", "prismatic") and m.get("default") is not None:
+            if mate_type in ("revolute", "prismatic"):
                 unit = "deg" if mate_type == "revolute" else "mm"
-                type_tag = f"{mate_type} @ {m['default']} {unit}"
+                source = "state.json" if m["name"] in state_overrides else "default"
+                type_tag = f"{mate_type} @ {m['_dof_value']:g} {unit} [{source}]"
             print(
                 f"  mate {m['name']} ({type_tag}): "
                 f"{a_name}.{joint_a_name} ↔ {b_name}.{joint_b_name}"

@@ -243,3 +243,69 @@ class TestClampDof:
     def test_one_sided_upper_only(self):
         assert _clamp_dof(50.0, [None, 100.0], "m", "mm") == 50.0
         assert _clamp_dof(150.0, [None, 100.0], "m", "mm") == 100.0
+
+
+# ── state-loading helper ─────────────────────────────────────────────────────
+
+class TestLoadState:
+    """mk.commands.build._load_state — JSON file → dict[mate_name, value]."""
+
+    def _args(self, tmp_path, **overrides):
+        import argparse
+        ns = argparse.Namespace(asm_kb="asm_x", state=None, outdir=str(tmp_path))
+        for k, v in overrides.items():
+            setattr(ns, k, v)
+        return ns
+
+    def test_missing_default_path(self, tmp_path):
+        from mk.commands.build import _load_state
+        # Default outdir/<asm>/state.json doesn't exist.
+        assert _load_state(self._args(tmp_path)) == {}
+
+    def test_explicit_path_missing(self, tmp_path):
+        from mk.commands.build import _load_state
+        ns = self._args(tmp_path, state=str(tmp_path / "no_such.json"))
+        assert _load_state(ns) == {}
+
+    def test_default_path(self, tmp_path):
+        from mk.commands.build import _load_state
+        sub = tmp_path / "asm_x"
+        sub.mkdir()
+        (sub / "state.json").write_text('{"hinge": 30.0, "slide": 5}')
+        result = _load_state(self._args(tmp_path))
+        assert result == {"hinge": 30.0, "slide": 5.0}
+
+    def test_explicit_path_wins(self, tmp_path):
+        from mk.commands.build import _load_state
+        # Default would find this:
+        sub = tmp_path / "asm_x"
+        sub.mkdir()
+        (sub / "state.json").write_text('{"a": 1}')
+        # But explicit overrides:
+        explicit = tmp_path / "elsewhere.json"
+        explicit.write_text('{"b": 2}')
+        ns = self._args(tmp_path, state=str(explicit))
+        assert _load_state(ns) == {"b": 2.0}
+
+    def test_empty_file_is_empty_dict(self, tmp_path):
+        from mk.commands.build import _load_state
+        sub = tmp_path / "asm_x"
+        sub.mkdir()
+        (sub / "state.json").write_text("")
+        assert _load_state(self._args(tmp_path)) == {}
+
+    def test_non_object_rejected(self, tmp_path):
+        from mk.commands.build import _load_state
+        sub = tmp_path / "asm_x"
+        sub.mkdir()
+        (sub / "state.json").write_text('[1, 2, 3]')
+        with pytest.raises(ValueError, match="JSON object"):
+            _load_state(self._args(tmp_path))
+
+    def test_non_numeric_value_rejected(self, tmp_path):
+        from mk.commands.build import _load_state
+        sub = tmp_path / "asm_x"
+        sub.mkdir()
+        (sub / "state.json").write_text('{"hinge": "forty"}')
+        with pytest.raises(ValueError, match="must be a number"):
+            _load_state(self._args(tmp_path))

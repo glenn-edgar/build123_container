@@ -51,20 +51,28 @@ Mate solver pre-applies `default` (or `current` from a state file) to compute
 the world transform. `mk build` and `mk show` render the assembly at that
 state. Animation (B.2) sweeps the value over time.
 
-### B.2 — Live animation in viewer (~3 days)
+### B.2 — Live animation in viewer (split into a/b)
 
-Two pieces:
+Originally scoped as one drop; split during implementation because
+browser-side scene-graph manipulation needs a viewer swap (see B.2.b).
 
-1. **Joint state injection.** A small file `outputs/<asm>.state.json` carries
-   `{"joint_<n>": angle_deg}`. `mk show` reads it; mate solver applies these
-   as overrides; emitted glTF reflects the state.
-2. **Browser-side animation.** `mk show --animate` emits a glTF with
-   per-revolute-joint nodes, plus a JS shim that polls
-   `<asm>.state.json` (or a WebSocket) and updates node transforms in the
-   `<model-viewer>` scene without a page reload.
+#### B.2.a — Joint-state injection at build time ✅ (done 2026-05-10)
 
-Controller-under-test writes a state file or pushes to a small relay; the
-viewer shows the controller-driven motion live.
+`mk build` reads `outputs/<asm>/state.json` (overridable with
+`--state <path>`). Format: `{"<mate_name>": <value>, ...}`. State values
+override each mate's manifest `default`. Verbose log tags the source
+(`[default]` vs `[state.json]`) and clamps to limits with a stderr WARN
+if exceeded. Static-pose use case: controller writes state.json, user
+reruns `mk build` + `mk show` to see the new pose. Build cost: 1–3 s
+per state change.
+
+#### B.2.b — Browser-side live animation (deferred to a follow-up session)
+
+Per-inst nodes in glTF + JS that polls `state.json` (~10 Hz) and updates
+the scene graph without rebuilding. Estimated 2–3 days. Requires
+swapping `<model-viewer>` for direct three.js (model-viewer doesn't
+expose a stable scene-graph API). The B.2.a state.json format and
+override logic carry over directly.
 
 ### B.3 — Typed META schema (~2 days)
 
