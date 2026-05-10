@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import inspect
 import io
+import json
 import os
+import re
 import textwrap
 from contextlib import contextmanager, redirect_stdout
 from contextvars import ContextVar
@@ -19,6 +21,43 @@ from typing import Any, Callable, Iterator, Optional, Sequence
 
 from mk.db import _resolve_ltree_path
 from vendor.kb_python.construct_kb import Construct_KB
+
+# A single layer name: identifier-ish. Multi-tag splits on comma; the same
+# pattern applies to each piece. Liberal enough for ``fasteners``,
+# ``emi_shield``, ``layer1`` but rejects ``oh no`` or ``a.b``.
+_LAYER_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_layer_tag(tag: str, *, where: str = "") -> str:
+    """Validate a layer-tag string (single name or comma-separated list).
+
+    Returns the canonical form: whitespace stripped around commas, but
+    insertion order preserved. Raises ValueError on invalid names.
+    """
+    if not isinstance(tag, str):
+        raise ValueError(f"{where}: layer= must be a string, got {type(tag).__name__}")
+    parts = [p.strip() for p in tag.split(",")]
+    if any(not p for p in parts):
+        raise ValueError(
+            f"{where}: empty layer name in {tag!r} (leading/trailing/double comma?)"
+        )
+    for p in parts:
+        if not _LAYER_NAME_RE.match(p):
+            raise ValueError(
+                f"{where}: invalid layer name {p!r} — must match "
+                f"[A-Za-z_][A-Za-z0-9_]* (got {tag!r})"
+            )
+    return ",".join(parts)
+
+
+def _split_layer_tag(tag: Optional[str]) -> list[str]:
+    """Parse a stored ``properties.layer`` string into a list of names.
+
+    Whitespace tolerated. Empty / None returns ``[]``.
+    """
+    if not tag:
+        return []
+    return [p.strip() for p in tag.split(",") if p.strip()]
 
 _current_kb: ContextVar[Optional["Construct_KB"]] = ContextVar(
     "_current_kb", default=None
@@ -32,6 +71,61 @@ def _get_mgr() -> "Construct_KB":
             "no active connection. wrap manifest body in `with connect(): ...`"
         )
     return mgr
+
+
+def _snapshot_layer_state(mgr: "Construct_KB", kb_name: str) -> dict[str, dict]:
+    """Read existing LAYER.<name> rows before truncate so re-apply preserves
+    user-toggled visibility / color / description state.
+
+    Returns ``{layer_name: properties_dict}``. Empty dict if the KB has no
+    LAYER rows yet (first apply).
+    """
+    rows = mgr.conn.execute(
+        "SELECT name, properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'LAYER'",
+        (kb_name,),
+    ).fetchall()
+    return {
+        r["name"]: (json.loads(r["properties"]) if r["properties"] else {})
+        for r in rows
+    }
+
+
+def _emit_layer_rows(
+    mgr: "Construct_KB", kb_name: str, preserved: dict[str, dict],
+) -> None:
+    """After a kb_asm() block finishes, scan its INST and SUB rows for
+    layer tags and write the corresponding LAYER.<name> rows.
+
+    Always emits ``LAYER.DEFAULT`` (the implicit layer for untagged
+    nodes). For names that existed before the truncate, preserves their
+    visibility / color / description; new names default to
+    ``{"visible": true}``. Preserved layers stick around even if the
+    current apply doesn't reference them — so toggle state survives a
+    transient manifest change.
+    """
+    rows = mgr.conn.execute(
+        "SELECT properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label IN ('INST', 'SUB') "
+        "  AND properties IS NOT NULL",
+        (kb_name,),
+    ).fetchall()
+
+    referenced: set[str] = {"DEFAULT"}
+    for r in rows:
+        props = json.loads(r["properties"])
+        for name in _split_layer_tag(props.get("layer")):
+            referenced.add(name)
+
+    # Preserved-but-currently-unreferenced layers keep their row so toggle
+    # state isn't lost if the manifest temporarily drops a tag.
+    referenced.update(preserved.keys())
+
+    for name in sorted(referenced):
+        state = dict(preserved.get(name, {}))
+        state.setdefault("visible", True)
+        with redirect_stdout(io.StringIO()):
+            mgr.add_info_node("LAYER", name, state, None)
 
 
 def _truncate_kb(mgr: "Construct_KB", kb_name: str) -> None:
@@ -161,12 +255,15 @@ class _AsmBuilder:
         ref_kb: str,
         params_override: Optional[dict] = None,
         location: Optional[dict] = None,
+        layer: Optional[str] = None,
     ) -> None:
         props: dict[str, Any] = {"ref_kb": ref_kb}
         if params_override:
             props["params_override"] = params_override
         if location:
             props["location"] = location
+        if layer is not None:
+            props["layer"] = _validate_layer_tag(layer, where=f"inst {name!r}")
         with redirect_stdout(io.StringIO()):
             self._mgr.add_info_node("INST", name, props, None)
 
@@ -212,9 +309,18 @@ class _AsmBuilder:
             self._mgr.add_info_node("MATE", name, props, None)
 
     @contextmanager
-    def sub(self, name: str, description: str = "") -> Iterator["_AsmBuilder"]:
+    def sub(
+        self,
+        name: str,
+        description: str = "",
+        *,
+        layer: Optional[str] = None,
+    ) -> Iterator["_AsmBuilder"]:
+        props: dict[str, Any] = {}
+        if layer is not None:
+            props["layer"] = _validate_layer_tag(layer, where=f"sub {name!r}")
         with redirect_stdout(io.StringIO()):
-            self._mgr.add_header_node("SUB", name, {}, None, description)
+            self._mgr.add_header_node("SUB", name, props, None, description)
         try:
             # Same builder instance — manager carries the path stack.
             yield self
@@ -225,10 +331,20 @@ class _AsmBuilder:
 
 @contextmanager
 def kb_asm(kb_name: str, description: str = "") -> Iterator[_AsmBuilder]:
-    """Declare an assembly. Truncates and rewrites kb_name's rows."""
+    """Declare an assembly. Truncates and rewrites kb_name's rows.
+
+    LAYER state from a previous apply is snapshotted before truncate and
+    restored after the user's inst/sub/mate calls land; new layer names
+    referenced by INST/SUB tags auto-create with ``{"visible": true}``.
+    """
     mgr = _get_mgr()
+    preserved_layers = _snapshot_layer_state(mgr, kb_name)
     _truncate_kb(mgr, kb_name)
     with redirect_stdout(io.StringIO()):
         mgr.add_kb(kb_name, description)
         mgr.select_kb(kb_name)
-    yield _AsmBuilder(mgr, kb_name)
+    builder = _AsmBuilder(mgr, kb_name)
+    try:
+        yield builder
+    finally:
+        _emit_layer_rows(mgr, kb_name, preserved_layers)

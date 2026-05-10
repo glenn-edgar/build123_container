@@ -20,59 +20,60 @@ verbatim in §2 below. Working history (what landed when) lives in
 | Phase B.2.b — live animation in viewer | ⏳ deferred | needs `<model-viewer>` → three.js swap; ~2–3 days. |
 | Phase B.3 — typed META schema | ✅ | Dotted META keys (`electrical.voltage_nominal_v`, `mech.gear_ratio`, …) group into namespaces under `meta` in the new `mk part export <kb>` JSON output. Flat keys (density, color, mass_g_override, _TODO_*) stay top-level. Backward-compatible — manifest API unchanged, `mk part show` keeps its row view. window_test motor migrated to the typed schema as a worked example. |
 | Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). |
-| Phase C — layers | ⏳ | per `docs/v2_layers.md`; ~1 wk. |
-| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF; ~1.5 wk. |
+| Phase C.1+C.2 — layer data model + CLI | ✅ | `LAYER.<name>` sentinel + `properties.layer` tags on INST/SUB. SUB inheritance with multi-tag union (`leaf_set ∪ ancestor_set`). Auto-create on first reference; state preserved across `mk apply` re-runs. `mk layer ls/set/all/color` CLI. Bool visibility (tri-state deferred to v3 per design doc). |
+| Phase C.3 — per-command visibility filter | ⏳ | wire `mk show`, `mk export gltf/step/dxf`, `mk mass`, `mk bom` to honor layer state per the `docs/v2_layers.md` policy table; ~2 days. |
+| Phase C.4 — STEP roundtrip | ⏳ | OCC `XCAFDoc_LayerTool` attaches layer assignments during STEP export; ~1 day. |
+| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF (uses C.4's layer mapping); ~1.5 wk. |
 
 `docs/v2_plan.md` is the long-form v2 commitment. `HISTORY.md` is the
 phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** With B.3 (typed META) and B.4 (URDF export) both
-in, Phase B is effectively done — only B.2.b (live JS animation)
-remains, and that's a pure viewer rewrite. The natural next step is
-**Phase C (layers)**, which Phase D (engineering drawings → DXF)
-depends on.
+**Read this first.** Phase B done, Phase C halfway done (data model +
+CLI shipped, visibility filter + STEP roundtrip remain). Three picks:
 
-1. **Phase C — layers** (~1 week) **[my pick]**. LAYER sentinel +
-   visibility filter per `docs/v2_layers.md`. Sub-phases C.1 (sentinel
-   + tagging, ~2d), C.2 (CLI: `mk layer ls/set/all/color`, ~1d), C.3
-   (per-command visibility policy: show/export gltf exclude hidden,
-   step/dxf include with metadata, mass/bom default-include with
-   `--respect-layers` flag, ~2d), C.4 (STEP roundtrip via XCAF
-   layer tool, ~1d). New feature work — no refactor risk. Unblocks D.
+1. **Phase C.3 — per-command visibility filter** (~2 days) **[my pick]**.
+   Wire the existing LAYER state through the commands that should
+   honor it. Per `docs/v2_layers.md` §"Where the filter applies":
+   `mk show` and `mk export gltf` exclude hidden parts; `mk export
+   step/dxf` include all parts but emit layer metadata; `mk mass`
+   and `mk bom` default-include (engineering data shouldn't lie),
+   with a `--respect-layers` flag for "what user sees weighs"; `mk
+   build` always builds all parts (hidden ≠ unbuilt). Real design
+   call to make on the `--respect-layers` flag semantics — confirm
+   before coding.
 
-2. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
-   `<model-viewer>` with direct three.js so the scene graph can be
-   updated from `state.json` polling without rebuilding. Pure
-   frontend rewrite; B.2.a state format and override logic stay. Can
-   be done any time independently — no dependency on C or D.
+2. **Phase C.4 — STEP roundtrip** (~1 day). Uses OCC's
+   `XCAFDoc_LayerTool.SetLayer(label, layerName)` during the existing
+   STEP export. Only meaningful after C.3 since C.3 is what introduces
+   the visibility-respecting code path. Could be folded into the same
+   session as C.3.
 
-3. **Phase D — engineering drawings** (~1.5 weeks). DXF export via
-   HLR ortho-view projection. Depends on C for DXF layer mapping. Plan
-   in `docs/v2_plan.md` §D.
+3. **Phase B.2.b — live JS animation** (~2–3 days). Pure frontend
+   rewrite. Independent of C / D.
 
-My pick: **C**, then D. C is the longest unbroken stretch of pure
-new-feature work left in the v2 plan; D rounds out the
-deliverable-artifact story (URDF + STEP + DXF + JSON sim-contract).
-B.2.b is a fine swap if a UI day feels right.
+My pick: **C.3 + C.4 together**, then D. C.3 is small per command but
+threads through many; C.4 is a focused integration with one new OCC
+API. After both ship, Phase D (DXF engineering drawings) can begin
+with the layer-mapping primitive in place.
 
 **State of the repo**: clean working tree (assuming this session's
-B.3 commit lands), `main` at the most recent commit. Docs live at
-https://glenn-edgar.github.io/build123_container/. mkdocs venv at
-`.venv/` (also has pytest installed).
+C.1+C.2 commit lands), `main` at the most recent commit. Docs live
+at https://glenn-edgar.github.io/build123_container/.
 
-**Quick verification commands** to make sure everything still works:
+**Quick verification commands**:
 ```bash
-.venv/bin/pytest tests/                                   # 100 host tests, ~90 ms
-docker compose run --rm cad build asm_window_test          # rigid-only smoke
-docker compose run --rm cad export asm_window_test urdf    # B.4 smoke
-docker compose run --rm cad export asm_hinge urdf          # revolute smoke
-docker compose run --rm cad part export part_n20_worm_motor_16rpm  # B.3 smoke
+.venv/bin/pytest tests/                                       # 132 host tests, ~110 ms
+docker compose run --rm cad apply /project/manifests/nested_asm.py
+docker compose run --rm cad layer ls asm_nested                # 5 layers, counts as expected
+docker compose run --rm cad layer set asm_nested emi off       # toggle
+docker compose run --rm cad apply /project/manifests/nested_asm.py   # state preserved
+docker compose run --rm cad export asm_window_test urdf        # B.4 still works
+docker compose run --rm cad part export part_n20_worm_motor_16rpm    # B.3 still works
 ```
 
-URDF output lives at `outputs/<asm>/<asm>.urdf` + `outputs/<asm>/meshes/`.
-See §10 for URDF conventions; §11 for the typed META schema.
+See §10 for URDF conventions, §11 for typed META, §12 for layers.
 
 ## 1. Definition of done — v1 ✅
 
@@ -458,3 +459,49 @@ demonstrates the convention. Its `electrical.*`, `mech.*`, and
 path. `meta("electrical", 12.0)` and `meta("electrical.voltage", 5.0)`
 raise `MetaTreeConflictError` at export time. Duplicate keys raise
 the same error.
+
+## 12. Layers (Phase C.1+C.2) — conventions
+
+Manifests can tag INST and SUB rows with one or more layer names via
+the `layer=` kwarg. Single names or comma-separated multi-tag both
+work; names must match `[A-Za-z_][A-Za-z0-9_]*`.
+
+```python
+a.inst("top_block", ref_kb="part_block", layer="frame")
+with a.sub("group_a", layer="electronics") as s:
+    s.inst("inner_a1", ref_kb="part_block")           # inherits "electronics"
+    s.inst("inner_a2", ref_kb="part_block", layer="emi")
+    # effective set: {"electronics", "emi"}
+```
+
+**Inheritance is additive.** An INST's effective layer set is the
+union of its own tags with every ancestor SUB's tags. Untagged
+anywhere falls back to the literal name `DEFAULT`, which is itself a
+`LAYER` row that can be toggled.
+
+**State storage.** Each named layer gets a `LAYER.<name>` row in the
+assembly KB. Properties: `visible` (bool, default true), optional
+`color` (hex string), optional `description`.
+
+**Auto-create + state preservation.** First reference to a new layer
+name in a manifest creates a `LAYER.<name>` row with
+`{"visible": true}`. On re-apply (`mk apply`), the layer state is
+snapshotted before truncate and restored after — so user-toggled
+visibility / color survive subsequent applies even if the manifest
+temporarily drops a tag.
+
+**CLI**:
+- `mk layer ls <asm>` — list with per-layer inst counts
+- `mk layer set <asm> <name> on|off` — toggle one
+- `mk layer all <asm> on|off` — bulk toggle
+- `mk layer color <asm> <name> <#hex>` — set color
+
+**What's not yet wired (Phase C.3, next session)**: visibility is
+recorded but no command consumes it yet. `mk show`, `mk export gltf`,
+etc. all still include every INST. C.3 threads the filter through.
+
+**Tri-state visibility** (show / ghost / hide) was deferred per
+`docs/v2_layers.md` §"Gotchas" #1 — bool is forward-compatible (readers
+that only understand bool treat any non-`"hide"` state as visible),
+and tri-state ghosting needs viewer infrastructure that lives in
+Phase B.2.b territory.

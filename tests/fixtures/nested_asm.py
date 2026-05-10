@@ -29,10 +29,14 @@ with connect():
         p.builder(build_block)
 
     with kb_asm("asm_nested", description="two-level SUB-scope mate test") as a:
-        a.inst("top_block", ref_kb="part_block")
-        with a.sub("group_a", description="lower-level group") as s:
+        # Phase C.1: layer tags. top_block is on "frame". group_a is on
+        # "electronics" (inherited by inner_a1); inner_a2 adds "emi"
+        # (effective layer set = {electronics, emi}). group_b is on
+        # "mechanical", inner_b1 inherits.
+        a.inst("top_block", ref_kb="part_block", layer="frame")
+        with a.sub("group_a", description="lower-level group", layer="electronics") as s:
             s.inst("inner_a1", ref_kb="part_block")
-            s.inst("inner_a2", ref_kb="part_block")
+            s.inst("inner_a2", ref_kb="part_block", layer="emi")
             # Mate inner_a2's -X face onto inner_a1's +X face. Tests that
             # the SUB-nested joint paths parse and the chain composes.
             s.mate(
@@ -41,5 +45,5 @@ with connect():
                 joint_b="asm_nested.SUB.group_a.INST.inner_a1.JOINT.face_pos",
                 mate_type="rigid",
             )
-        with a.sub("group_b") as s:
+        with a.sub("group_b", layer="mechanical") as s:
             s.inst("inner_b1", ref_kb="part_block")

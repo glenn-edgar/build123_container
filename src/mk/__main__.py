@@ -13,6 +13,7 @@ from mk.commands import bom as cmd_bom
 from mk.commands import build as cmd_build
 from mk.commands import export as cmd_export
 from mk.commands import init as cmd_init
+from mk.commands import layer as cmd_layer
 from mk.commands import mass as cmd_mass
 from mk.commands import measure as cmd_measure
 from mk.commands import part as cmd_part
@@ -35,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_bom.add_parser(subparsers)
     cmd_show.add_parser(subparsers)
     cmd_measure.add_parser(subparsers)
+    cmd_layer.add_parser(subparsers)
     return parser
 
 
