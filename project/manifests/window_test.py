@@ -246,8 +246,9 @@ with connect():
         p.meta("encoder_present", True)
         p.meta("_TODO_encoder_type", "magnetic_quadrature")
         p.meta("_TODO_encoder_cpr_pre_gear", 7)
-        p.meta("density", 7.0)
-        p.meta("color", "#5a6573")  # gunmetal — looks like steel
+        p.meta("density", 7.0)               # average; geometry over-counts hollow body
+        p.meta("mass_g_override", 10.0)      # real Anreak N20-worm-w/encoder ~10g per datasheet
+        p.meta("color", "#5a6573")           # gunmetal — looks like steel
         p.builder(build_n20_worm_motor_y_shaft)
 
     # ── Lever arm (30° pie slice from a 40 mm wheel) ─────────────────────

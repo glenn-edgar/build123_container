@@ -262,39 +262,28 @@ build123_container/
 
 ## 9. Known limitations / v1.x backlog
 
-Things found during mop-up + the §4 evaluation that should be addressed
-before they bite the next evaluator:
+Phase A of v2 (closed 2026-05-10) resolved most of these. Remaining open:
 
-- **SUB-nested mate paths don't parse.** `src/mk/mate.py`'s `JOINT_PATH_RE`
-  matches only the flat form `<asm>.INST.<inst>.JOINT.<joint>`. Paths like
-  `asm_nested.SUB.group_a.INST.inner_a1.JOINT.face` (which the
-  `kb_asm.sub()` context manager generates) don't parse, so any nested
-  assembly with mates breaks at `mk build` time. Fix is a small regex +
-  INST-lookup-by-path change in `mate.py` and `measure.py`. <100 lines.
-- **No pytest harness.** The repo has no `tests/test_*.py`. Coverage is the
-  manual §1 verifier sequence. Wiring pytest needs `pip install -e .`
-  packaging config so tests can `import mk.*` cleanly.
 - **STEP geom_hash not deterministic.** `sha256(STEP-bytes)` picks up
   timestamps in OpenCascade's STEP serializer, so even identical builds
   produce different hashes. Cosmetic for prototype (cache still works);
-  blocks v2 hash-cascade caching plans.
-- **Mass override missing.** `META.density × volume` over-counts hollow
-  assemblies — the N20 motor renders as 43 g where real is ~10 g. Add
-  `META.mass_g_override` that supersedes the volume×density calc. ~15
-  lines in `mass.py`.
-- **Single index.html per outputs/.** `mk show <asm>` overwrites whatever
-  the previous `mk show` wrote. Multi-asm projects need separate URLs.
-  Could partition by subdirectory (`/asm_window_test/`,
-  `/asm_unit_box/`...) and have viewer serve each.
-- **No `mk part rm`.** Stale KBs from prior fixtures persist forever.
-  Need a delete command (or a `--force` re-apply mode that clears the
-  KB before rewrite).
-- **Mate solver assumes joint-b is the fixed end.** No detection of cycles,
-  no over-constraint handling, no bidirectional propagation. Works for
-  trees of mates processed in dependency order; falls over on closed
-  loops (which would be needed for kinematic chains in v2).
-- **Color rendering subtleties** (resolved during evaluation but worth
-  noting): `Compound([list])` doesn't propagate child colors — must use
+  blocks v2 hash-cascade caching plans. Fix punted to v3.
+- **Color rendering subtleties** (resolved in code, captured for memory):
+  `Compound([list])` doesn't propagate child colors — must use
   `Compound(children=[...])` keyword form. `Color()` rejects hex strings;
-  needs the parser added in `show.py`. `Location * Shape` strips the
-  `.color` attribute; assign color *after* applying location.
+  the parser in `show.py` handles it. `Location * Shape` strips the
+  `.color` attribute; assign color *after* applying location. See
+  `docs/troubleshooting.md` and the build123d-gotchas memory note.
+
+Closed during Phase A:
+
+- ✅ SUB-nested mate paths parse (regex + path-lookup fix).
+- ✅ Topo-sort mates with cycle/over-constraint detection (no more
+  `a_/b_/c_` naming discipline required).
+- ✅ `META.mass_g_override` (virtual-density factor preserves inertia
+  consistency).
+- ✅ Multi-assembly viewer (`outputs/<asm>/` subdirs + top-level listing).
+- ✅ `mk part rm <kb>` (dry-run by default; `--force` to delete; warns on
+  dangling INST refs).
+- ✅ pytest harness (26 tests on host via `.venv/bin/pytest`; OCP-needing
+  tests gated behind a marker for in-container runs).

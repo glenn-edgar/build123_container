@@ -53,10 +53,28 @@ namespace at build time — outer imports won't follow it.
 | `a.mate(name, *, joint_a, joint_b, mate_type="rigid", params=None)` | `MATE` row | rigid mate solver runs at `mk build` time |
 
 Joint paths in `mate(...)` use the form
-`<asm>.INST.<inst_name>.JOINT.<joint_name>` (or with `.SUB.<sub>` segments
-for nested instances — but **note**: as of v1, the rigid mate solver only
-parses the flat form; SUB-nested mate paths are a v1.x backlog item per
-`continue.md` §9).
+`<asm>[.SUB.<sub>]*.INST.<inst_name>.JOINT.<joint_name>` — any number of
+`.SUB.<sub>` segments allowed for nested instances. Mates are solved in
+topological order of their inst-dependency graph; cycles and
+over-constraints raise `ValueError` before any DB write, so naming
+discipline (`a_/b_/c_/...` prefixes on mate names) is no longer required.
+
+## Mass override (META.mass_g_override)
+
+By default `mk mass` computes mass as `volume × density / 1000`. For
+hollow assemblies (motors, enclosures) where the geometric volume
+over-counts what's actually there, set `META.mass_g_override` on the part
+to the real datasheet mass (in grams):
+
+```python
+p.meta("density", 7.0)           # average; geometry over-counts hollow body
+p.meta("mass_g_override", 10.0)  # real datasheet value
+```
+
+When present, `mass_g_override` supersedes the volume×density calc.
+Inertia stays consistent — internally the calc uses a virtual density
+that scales the inertia matrix proportionally to land on the override
+mass.
 
 ## build123d primitives that map to common features
 

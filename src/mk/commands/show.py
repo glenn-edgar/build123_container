@@ -145,7 +145,10 @@ def run(args: argparse.Namespace) -> int:
     # never reach the XCAF document.
     compound = Compound(children=shapes)
 
-    out_dir = Path(args.outdir)
+    # Per-assembly subdirectory so multiple assemblies can coexist in the
+    # viewer. Browser URL becomes /<asm_kb>/ instead of /.
+    out_root = Path(args.outdir)
+    out_dir = out_root / args.asm_kb
     out_dir.mkdir(parents=True, exist_ok=True)
     suffix = ".glb" if args.binary else ".gltf"
     out_path = out_dir / f"{args.asm_kb}{suffix}"
@@ -167,10 +170,74 @@ def run(args: argparse.Namespace) -> int:
         )
     )
 
+    # Top-level listing of all assemblies that have an index.html. Refreshed
+    # on every mk show so a recently-built assembly always appears.
+    listing_path = out_root / "index.html"
+    listing_path.write_text(_listing_html(out_root))
+
     print(f"wrote {out_path}  ({out_path.stat().st_size} bytes)")
     print(f"wrote {index_path} with {len(joints_for_hotspots)} joint hotspot(s)")
-    print(f"viewer: {VIEWER_URL}  (run `docker compose up -d viewer` if not already up)")
+    print(f"viewer: {VIEWER_URL}/{args.asm_kb}/  (or {VIEWER_URL}/ for index)")
+    print(f"  (run `docker compose up -d viewer` if not already up)")
     return 0
+
+
+def _listing_html(out_root: Path) -> str:
+    """Top-level outputs/index.html — links to every per-assembly viewer page.
+
+    Scans out_root for subdirectories that contain an index.html, lists them
+    with a small 'opened-in-this-session' indicator (most recently modified
+    first).
+    """
+    entries = []
+    for child in sorted(out_root.iterdir()):
+        if not child.is_dir():
+            continue
+        idx = child / "index.html"
+        if not idx.exists():
+            continue
+        entries.append({
+            "name": child.name,
+            "mtime": idx.stat().st_mtime,
+        })
+    entries.sort(key=lambda e: -e["mtime"])
+
+    rows_html = "".join(
+        f'<li><a href="{e["name"]}/">{e["name"]}</a></li>'
+        for e in entries
+    ) or "<li><em>No assemblies yet. Run <code>mk show &lt;asm&gt;</code>.</em></li>"
+
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>mk-cad — assemblies</title>
+<style>
+  html, body {{ margin: 0; padding: 24px; background: #1e1e1e; color: #ddd;
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 13px; }}
+  h1 {{ font-size: 16px; color: #fff; margin: 0 0 16px 0; }}
+  ul {{ list-style: none; padding: 0; margin: 0; }}
+  li {{ padding: 6px 0; border-bottom: 1px solid #333; }}
+  li:last-child {{ border-bottom: none; }}
+  a {{ color: #6cf; text-decoration: none; }}
+  a:hover {{ text-decoration: underline; }}
+  .footer {{ margin-top: 24px; opacity: 0.5; font-size: 11px; }}
+</style>
+</head>
+<body>
+<h1>mk-cad — assemblies in /project/outputs/</h1>
+<ul>
+{rows_html}
+</ul>
+<div class="footer">
+  Sorted by most-recently-shown. Each link opens that assembly's viewer
+  page (sidebar panels, joint hotspots, draggable). Refresh this index
+  after running another <code>mk show &lt;asm&gt;</code>.
+</div>
+</body>
+</html>
+"""
 
 
 def _parse_color(value):
@@ -239,10 +306,23 @@ def _apply_trsf_to_point(trsf, pt: list[float]) -> list[float]:
 
 
 def _mass_and_com(conn, asm_kb: str, inst_rows) -> tuple[float | None, list[float] | None]:
-    """Best-effort mass + CoM. Returns (None, None) if anything's missing."""
+    """Best-effort mass + CoM. Returns (None, None) if anything's missing.
+
+    Honors META.mass_g_override on a part (falls back to volume × density).
+    """
     try:
         from OCP.BRepGProp import BRepGProp
         from OCP.GProp import GProp_GProps
+
+        def _meta_value(part_kb: str, meta_name: str):
+            row = conn.execute(
+                "SELECT properties FROM knowledge_base "
+                "WHERE knowledge_base = ? AND label = 'META' AND name = ?",
+                (part_kb, meta_name),
+            ).fetchone()
+            if row is None:
+                return None
+            return json.loads(row["properties"]).get("value")
 
         total = GProp_GProps()
         for r in inst_rows:
@@ -258,18 +338,20 @@ def _mass_and_com(conn, asm_kb: str, inst_rows) -> tuple[float | None, list[floa
                 return None, None
             shape = brep_bytes_to_shape(blob["brep_blob"])
             topods = apply_location_to_topods(shape.wrapped, props.get("location"))
-            density_row = conn.execute(
-                "SELECT properties FROM knowledge_base "
-                "WHERE knowledge_base = ? AND label = 'META' AND name = 'density'",
-                (ref_kb,),
-            ).fetchone()
-            density = (
-                float(json.loads(density_row["properties"]).get("value", 1.0))
-                if density_row else 1.0
-            )
+
+            mass_override = _meta_value(ref_kb, "mass_g_override")
+            density_v = _meta_value(ref_kb, "density")
+            density = float(density_v) if density_v is not None else 1.0
+
             item = GProp_GProps()
             BRepGProp.VolumeProperties_s(topods, item)
-            total.Add(item, density)
+            vol_mm3 = item.Mass()
+            if mass_override is not None and vol_mm3 > 0:
+                # Virtual density: makes total.Add produce exactly the override.
+                effective = float(mass_override) * 1000.0 / vol_mm3
+            else:
+                effective = density
+            total.Add(item, effective)
         com = total.CentreOfMass()
         return total.Mass() / 1000.0, [com.X(), com.Y(), com.Z()]
     except Exception:

@@ -36,6 +36,24 @@ def _part_density(conn, part_kb: str) -> float:
     return float(val) if val is not None else DEFAULT_DENSITY
 
 
+def _part_mass_override(conn, part_kb: str) -> float | None:
+    """Return META.mass_g_override.value if present (grams), else None.
+
+    When present, supersedes the volume × density calc so hollow assemblies
+    (motors, enclosures) report their datasheet mass instead of the
+    over-counted geometric estimate.
+    """
+    row = conn.execute(
+        "SELECT properties FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'META' AND name = 'mass_g_override'",
+        (part_kb,),
+    ).fetchone()
+    if row is None:
+        return None
+    val = json.loads(row["properties"]).get("value")
+    return float(val) if val is not None else None
+
+
 def _located_topods(blob: bytes, location: dict[str, Any] | None):
     """Return a TopoDS_Shape with the INST's location (translation+rotation) applied."""
     shape = brep_bytes_to_shape(blob)
@@ -86,17 +104,29 @@ def run(args: argparse.Namespace) -> int:
 
         topods = _located_topods(blob_row["brep_blob"], props.get("location"))
         density = _part_density(conn, ref_kb)
+        mass_override = _part_mass_override(conn, ref_kb)
 
         item = GProp_GProps()
         BRepGProp.VolumeProperties_s(topods, item)
-        # GProp_GProps.Add weights item by `density` and combines parallel-axis correctly.
-        total.Add(item, density)
+        vol_mm3 = item.Mass()  # GProp_GProps.Mass() of VolumeProperties = volume
 
-        # Per-instance line: volume in mm^3, mass = volume * density / 1000 grams.
-        vol_mm3 = item.Mass()
-        mass_g = vol_mm3 * density / 1000.0
+        # If META.mass_g_override is present, use a virtual density that makes
+        # GProp_GProps.Add produce exactly that mass. The same factor scales
+        # inertia proportionally — correct under the uniform-density
+        # approximation we use throughout.
+        if mass_override is not None and vol_mm3 > 0:
+            effective_factor = mass_override * 1000.0 / vol_mm3
+            mass_g = mass_override
+            tag = f"override {mass_override:.4f} g"
+        else:
+            effective_factor = density
+            mass_g = vol_mm3 * density / 1000.0
+            tag = f"ρ={density:g}"
+
+        total.Add(item, effective_factor)
+
         com = item.CentreOfMass()
-        print(f"  {r['path']}  ρ={density:g}  V={vol_mm3:.3f} mm^3  "
+        print(f"  {r['path']}  {tag}  V={vol_mm3:.3f} mm^3  "
               f"m={mass_g:.4f} g  com=({com.X():.3f},{com.Y():.3f},{com.Z():.3f})")
         n_inst += 1
 

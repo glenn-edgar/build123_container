@@ -6,22 +6,23 @@ half-built dependencies behind. Total estimate ~5–6 weeks of focused work.
 This document is the v2 commitment; updates land here, not in `continue.md`
 §11 (which records the original rev-2 deferrals).
 
-## Phase A — close v1.x gaps (~1 week)
+## Phase A — close v1.x gaps ✅ (done 2026-05-10)
 
-Small fixes that finish the v1 prototype's rough edges. Each unblocks more
+Small fixes that finished the v1 prototype's rough edges. Each unblocks more
 ambitious work later.
 
-| Item | Effort | Notes |
+| Item | Status | Notes |
 |---|---|---|
-| SUB-nested mate paths parse correctly | ~1 hr | Update `mate.py`'s regex + INST-lookup to use full path, not just leaf name. Same fix in `measure.py`. |
-| Topo-sort mates instead of name-prefix discipline | ~1 hr | Build a DAG from joint_a.inst → joint_b.inst, process in topological order. Detects cycles too. |
-| `META.mass_g_override` | ~30 min | When present on a part, supersedes the volume×density calc in `mass.py`. |
-| Multi-assembly viewer | ~2 hr | `mk show <asm>` writes to `outputs/<asm>/index.html` instead of overwriting. Optional outputs/index.html lists all assemblies. |
-| `mk part rm <kb>` | ~30 min | Truncate the named KB and its `knowledge_base_info` row. |
-| pytest harness | ~2 hr | `pip install -e .[dev]` with pytest extra; tests/test_smoke.py + tests/test_mate_solver.py. |
+| SUB-nested mate paths parse correctly | ✅ | `JOINT_PATH_RE` now matches `<asm>[.SUB.<s>]*.INST.<i>.JOINT.<j>`. INST lookups use full path (leaf names collide across SUB scopes). `nested_asm.py` fixture builds end-to-end. |
+| Topo-sort mates instead of name-prefix discipline | ✅ | Kahn's algorithm over inst-dependency DAG. Cycles + over-constraints raise ValueError before any DB write. Naming discipline no longer required; verified via `topo_chain.py` fixture with scrambled names. |
+| `META.mass_g_override` | ✅ | When present, supersedes volume×density. Inertia stays consistent via virtual-density factor. N20 motor in `asm_window_test` now reports 10 g (was 43 g). |
+| Multi-assembly viewer | ✅ | `mk show <asm>` writes to `outputs/<asm>/`. Top-level `outputs/index.html` lists all assemblies. Browser URL: `/<asm>/`. |
+| `mk part rm <kb>` | ✅ | Default = dry-run with row count + warning if any other assembly's INST still references the part. `--force` actually deletes. |
+| pytest harness | ✅ | `pyproject.toml` has `[project.optional-dependencies] dev = ["pytest>=7"]` + `[tool.pytest.ini_options]`. `tests/conftest.py` skips OCP-needing tests on host. 26 tests in `test_imports.py` + `test_mate.py` (parse, matrix math, topo sort) — all passing on host via `.venv/bin/pytest`. |
 
-**Definition of done:** all v1.x backlog items in `continue.md` §9 are closed
-or moved to a later phase.
+**Phase A definition of done met.** Remaining v1.x items in `continue.md`
+§9 (STEP geom_hash determinism, color-rendering subtleties documented but
+acted-on, mate cycle detection) are either resolved or out-of-scope for v2.
 
 ## Phase B — simulation + actuation (~2 weeks)
 

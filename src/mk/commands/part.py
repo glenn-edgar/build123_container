@@ -45,6 +45,17 @@ def add_parser(subparsers) -> None:
     )
     new.set_defaults(func=run_new)
 
+    rm = part_sub.add_parser(
+        "rm", help="Delete a part or assembly KB (and its rows) from the DB.",
+    )
+    rm.add_argument("kb_name", help="kb_name to delete")
+    rm.add_argument(
+        "--force", action="store_true",
+        help="actually do the delete (required; safety check)",
+    )
+    rm.add_argument("--db", default=DEFAULT_DB_PATH)
+    rm.set_defaults(func=run_rm)
+
 
 def run_list(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
@@ -96,6 +107,65 @@ def run_show(args: argparse.Namespace) -> int:
         else:
             print(f"  {r['label']}.{r['name']}: {props}")
     conn.close()
+    return 0
+
+
+def run_rm(args: argparse.Namespace) -> int:
+    """Delete a KB and all its rows from the DB.
+
+    Doesn't touch geometry rows (those are content-addressed and may be
+    referenced by INSTs in other assemblies — orphan-cleanup is v3 GC).
+    Doesn't touch any manifest .py file.
+
+    If the deleted KB is a part referenced by INSTs in some assembly, those
+    INSTs become dangling and `mk build <that_asm>` will fail when looking
+    up the part KB. Re-apply the source manifest to recreate.
+    """
+    conn = open_db(args.db)
+    info = conn.execute(
+        "SELECT description FROM knowledge_base_info WHERE knowledge_base = ?",
+        (args.kb_name,),
+    ).fetchone()
+    if info is None:
+        print(f"no such kb: {args.kb_name!r}", file=sys.stderr)
+        conn.close()
+        return 1
+
+    n_rows = conn.execute(
+        "SELECT COUNT(*) FROM knowledge_base WHERE knowledge_base = ?",
+        (args.kb_name,),
+    ).fetchone()[0]
+
+    desc = info["description"] or "(no description)"
+    if not args.force:
+        print(f"would delete {args.kb_name!r}")
+        print(f"  description: {desc}")
+        print(f"  knowledge_base rows: {n_rows}")
+        print(f"  knowledge_base_info rows: 1")
+        # Warn if referenced by INSTs in other assemblies (orphan risk).
+        ref_rows = conn.execute(
+            """
+            SELECT DISTINCT knowledge_base
+            FROM knowledge_base
+            WHERE label = 'INST'
+              AND json_extract(properties, '$.ref_kb') = ?
+              AND knowledge_base != ?
+            """,
+            (args.kb_name, args.kb_name),
+        ).fetchall()
+        if ref_rows:
+            kbs = ", ".join(r["knowledge_base"] for r in ref_rows)
+            print(f"  WARN: still referenced as ref_kb by INSTs in: {kbs}")
+            print(f"  (those assemblies will fail to build until the part is re-applied)")
+        print(f"add --force to actually delete", file=sys.stderr)
+        conn.close()
+        return 1
+
+    conn.execute("DELETE FROM knowledge_base WHERE knowledge_base = ?", (args.kb_name,))
+    conn.execute("DELETE FROM knowledge_base_info WHERE knowledge_base = ?", (args.kb_name,))
+    conn.commit()
+    conn.close()
+    print(f"deleted {args.kb_name!r} ({n_rows} kb rows + 1 info row)")
     return 0
 
 
