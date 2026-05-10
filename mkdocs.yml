@@ -48,6 +48,7 @@ nav:
   - Troubleshooting: troubleshooting.md
   - v2 plan: v2_plan.md
   - v2 — Layers: v2_layers.md
+  - v2 — Evaluation log: v2_evaluation.md
 
 markdown_extensions:
   # Python Markdown
