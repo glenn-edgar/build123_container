@@ -50,7 +50,7 @@ namespace at build time — outer imports won't follow it.
 |---|---|---|
 | `a.inst(name, *, ref_kb, params_override=None, location=None, layer=None)` | `INST` row | place a part instance; optional layer tag (single name or comma-separated multi-tag) |
 | `a.sub(name, description="", *, layer=None)` | `SUB` row, returns nested AsmBuilder | use as `with a.sub("frame") as s:`; layer cascades to descendants |
-| `a.mate(name, *, joint_a, joint_b, mate_type="rigid", axis=None, limits=None, default=None, params=None)` | `MATE` row | mate solver runs at `mk build` time; revolute/prismatic mates use `axis`, `limits=[lo, hi]`, `default` (deg or mm) |
+| `a.mate(name, *, joint_a, joint_b, mate_type="rigid", align="z", axis=None, limits=None, default=None, params=None)` | `MATE` row | mate solver runs at `mk build` time. `align="z"` (default) opposes joint normals; `align="position"` translates only (pin-into-bushing). Revolute/prismatic mates use `axis`, `limits=[lo, hi]`, `default` (deg or mm); `align` is ignored. |
 
 Joint paths in `mate(...)` use the form
 `<asm>[.SUB.<sub>]*.INST.<inst_name>.JOINT.<joint_name>` — any number of

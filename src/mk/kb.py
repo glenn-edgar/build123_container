@@ -274,6 +274,7 @@ class _AsmBuilder:
         joint_a: str,
         joint_b: str,
         mate_type: str = "rigid",
+        align: str = "z",
         axis: Optional[list] = None,
         limits: Optional[list] = None,
         default: Optional[float] = None,
@@ -281,8 +282,18 @@ class _AsmBuilder:
     ) -> None:
         """Declare a mate between two joint paths.
 
-        For ``mate_type="rigid"``: aligns joint_a coincident with joint_b,
-        z-axes opposing. No kinematic DOF.
+        For ``mate_type="rigid"``: aligns joint_a coincident with joint_b.
+        Two ``align`` modes:
+
+        - ``align="z"`` (default): joint_a's origin lands at joint_b's
+          origin AND joint_a's z-axis is rotated to oppose joint_b's
+          z-axis. Use for face-to-face mates, surface mates, and
+          anything where the joint normals must oppose.
+        - ``align="position"``: only the origin coincidence is enforced;
+          the part's orientation in inst_b's frame is unchanged
+          (rel_rot = identity). Use for pin-into-bushing or fastener-
+          into-hole cases where the part should be placed without
+          rotation.
 
         For ``mate_type="revolute"`` or ``"prismatic"``: rigid alignment plus
         one DOF along ``axis`` (a 3-vector in joint_a's local frame; defaults
@@ -291,12 +302,22 @@ class _AsmBuilder:
         range (degrees for revolute, mm for prismatic; ``None`` = unbounded).
         ``default`` is the initial pose value (degrees / mm) used at build
         time. Phase B.2 adds animation overrides via outputs/<asm>.state.json.
+        ``align`` is silently ignored for revolute / prismatic — the
+        z-alignment is required to define the rotation axis.
         """
+        if align not in ("z", "position"):
+            raise ValueError(
+                f"mate {name!r}: align must be 'z' or 'position', got {align!r}"
+            )
         props: dict[str, Any] = {
             "joint_a": joint_a,
             "joint_b": joint_b,
             "mate_type": mate_type,
         }
+        # Only persist non-default align — keeps existing manifests'
+        # MATE rows byte-identical (geom_hash stability).
+        if align != "z":
+            props["align"] = align
         if axis is not None:
             props["axis"] = list(axis)
         if limits is not None:

@@ -119,6 +119,25 @@ def _solve_rigid(
     return rot, translation
 
 
+def _solve_position(
+    ja_origin: list[float],
+    jb_origin: list[float],
+) -> tuple[list[list[float]], list[float]]:
+    """Translation-only rigid mate: rel_rot = identity, rel_trans places
+    joint_a's origin at joint_b's origin in inst_b's local frame.
+
+    Used by ``mate(..., align="position")``. The part comes in unrotated
+    relative to its parent — useful for pin-into-bushing or fastener-
+    into-hole cases where the part's orientation should be preserved.
+    """
+    translation = [
+        jb_origin[0] - ja_origin[0],
+        jb_origin[1] - ja_origin[1],
+        jb_origin[2] - ja_origin[2],
+    ]
+    return _identity_rot(), translation
+
+
 def _matmul3(a: list[list[float]], b: list[list[float]]) -> list[list[float]]:
     """3x3 matrix multiply: a @ b."""
     return [
@@ -325,6 +344,7 @@ def _parse_mate_rows(conn: sqlite3.Connection, asm_kb: str) -> list[dict]:
         parsed.append({
             "name": r["name"],
             "mate_type": mate_type,
+            "align": p.get("align", "z"),  # default matches pre-R2.3 behaviour
             "a_path": a_path, "a_name": a_name, "joint_a_name": joint_a_name,
             "b_path": b_path, "b_name": b_name, "joint_b_name": joint_b_name,
             "axis": p.get("axis", [0.0, 0.0, 1.0]),
@@ -380,7 +400,14 @@ def compute_world_transforms(
 
         mate_type = m["mate_type"]
         if mate_type == "rigid":
-            rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
+            # R2.3: align="position" gives translation-only mating; "z"
+            # is the original z-opposing behaviour. align is silently
+            # ignored for revolute / prismatic — the z-alignment defines
+            # the rotation axis there.
+            if m.get("align") == "position":
+                rel_rot, rel_trans = _solve_position(ja_origin, jb_origin)
+            else:
+                rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
         else:
             raw = state_overrides.get(m["name"], m["default"]) or 0.0
             unit = "deg" if mate_type == "revolute" else "mm"

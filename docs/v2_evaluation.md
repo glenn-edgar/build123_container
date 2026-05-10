@@ -161,6 +161,25 @@ If a v3 round 3 cycle starts:
 3. **R2.4 part-frame bbox in measure** — minor; can wait.
 4. **R2.5 z_dir legend** — trivial doc tweak.
 
+### Round-2 close-out (same session)
+
+Four of the five round-2 items closed in one follow-up commit:
+
+| Item | Result |
+|---|---|
+| **R2.1** | `mk part new` scaffold updated with commented examples for typed META (`electrical.voltage_nominal_v`, `mech.max_load_n`), `mass_g_override`, color/vendor/part_number, plus an `align` semantics note on joints |
+| **R2.2** | New `mk asm new <name> [--template flat\|with_sub]` subcommand. `flat` writes a 1-inst starter; `with_sub` writes a 2-level SUB-scope template demonstrating the nested mate-path form and layer cascading |
+| **R2.3** | `mate(..., align="z"\|"position")` — `align="z"` (default) preserves the original z-opposing rigid mate; `align="position"` translates only and preserves part orientation. New `_solve_position` solver branch (rel_rot=identity, rel_trans=jb_origin-ja_origin). Validated end-to-end on `asm_coupler_demo`: switching the coupler→lever mate to position-mode flipped the coupler's bbox from `8×40×2` back to `40×8×2`, matching the part-local declaration. Existing assemblies unaffected (align="z" is the silent default). |
+| **R2.5** | `mk part show` JOINT section gained a one-line legend explaining `z_dir` semantics + `align="z"` mate behaviour |
+
+R2.4 (part-frame bbox in measure) skipped per the prior assessment —
+the existing measure output is already labelled "world coords (mm)";
+no code change merited.
+
+After this close-out, the friction log is empty of unaddressed
+items. The three deferred buckets (BOM rewrite, diff apply, STEP
+determinism) and three documented surprises remain by design.
+
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
 

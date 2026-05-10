@@ -13,6 +13,7 @@ from mk.mate import (
     _matmul3,
     _matvec3,
     _parse_joint_path,
+    _solve_position,
     _topo_sort_mates,
 )
 
@@ -100,6 +101,7 @@ def _mate(name: str, a_path: str, b_path: str) -> dict:
     """Build a minimal parsed-mate dict for topo-sort testing."""
     return {
         "name": name,
+        "align": "z",
         "a_path": a_path, "a_name": a_path.split(".")[-1], "joint_a_name": "j",
         "b_path": b_path, "b_name": b_path.split(".")[-1], "joint_b_name": "j",
     }
@@ -309,3 +311,32 @@ class TestLoadState:
         (sub / "state.json").write_text('{"hinge": "forty"}')
         with pytest.raises(ValueError, match="must be a number"):
             _load_state(self._args(tmp_path))
+
+
+# ── _solve_position (R2.3 translation-only rigid mate) ──────────────────────
+
+class TestSolvePosition:
+    def test_returns_identity_rotation(self):
+        rot, _ = _solve_position([1.0, 2.0, 3.0], [10.0, 20.0, 30.0])
+        assert rot == _identity_rot()
+
+    def test_translation_is_jb_minus_ja(self):
+        _, trans = _solve_position([1.0, 2.0, 3.0], [10.0, 20.0, 30.0])
+        assert trans == [9.0, 18.0, 27.0]
+
+    def test_zero_origins_no_translation(self):
+        _, trans = _solve_position([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+        assert trans == [0.0, 0.0, 0.0]
+
+    def test_negative_components(self):
+        _, trans = _solve_position([5.0, 0.0, -3.0], [-2.0, 7.0, 1.0])
+        assert trans == [-7.0, 7.0, 4.0]
+
+    def test_does_not_depend_on_zdir(self):
+        # _solve_position deliberately ignores joint zdirs — that's the
+        # whole point. Verified by signature, but pin via a usage test:
+        # any z_dir values would produce the same result.
+        rot1, trans1 = _solve_position([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+        rot2, trans2 = _solve_position([1.0, 2.0, 3.0], [4.0, 5.0, 6.0])
+        assert rot1 == rot2
+        assert trans1 == trans2

@@ -152,7 +152,7 @@ def run_show(args: argparse.Namespace) -> int:
     # JOINT block — show origin + optional z_dir + optional x_dir.
     if by_label["JOINT"]:
         print()
-        print("JOINT:")
+        print("JOINT:  (z_dir = joint normal; rigid mates with align=\"z\" oppose A's z to B's z)")
         name_w = max(len(r["name"]) for r in by_label["JOINT"])
         for r in by_label["JOINT"]:
             p = json.loads(r["properties"]) if r["properties"] else {}
@@ -422,13 +422,32 @@ from mk.kb import connect, kb_part
 with connect():
     with kb_part({kb_name!r}, description="TODO: describe {stem}") as p:
 {param_lines}
-        # Joints define named coordinate frames for mating. Optional.
+        # Joints define named coordinate frames for mating. z_dir is the
+        # joint's normal — rigid mates with align="z" (default) align
+        # A's z to -B's z. Optional.
         # p.joint("top",    origin=[0, 0, 0], z_dir=[0, 0,  1])
         # p.joint("bottom", origin=[0, 0, 0], z_dir=[0, 0, -1])
 
         # Material / density. density is g/cm^3; mk mass uses it directly.
         p.meta("density", 7.85)
         p.meta("material", "steel")
+        # p.meta("color", "#a0a0a8")          # hex; shows in viewer + STEP
+        # p.meta("vendor", "")                # for mk bom + mk part export
+        # p.meta("part_number", "")           # for mk bom + mk part export
+
+        # Hollow / composite parts: override the volume × density mass
+        # so mk mass + URDF inertia report datasheet values instead of
+        # the over-counted geometric estimate.
+        # p.meta("mass_g_override", 10.0)
+
+        # Typed sim-contract fields — dotted META keys group into
+        # namespaces in `mk part export` JSON. Useful for controller-
+        # under-test code that needs structured access to electrical /
+        # mechanical / encoder parameters. Examples:
+        # p.meta("electrical.voltage_nominal_v", 12.0)
+        # p.meta("mech.max_load_n", 25.0)
+        # p.meta("mech.gear_ratio", 100)
+        # p.meta("encoder.cpr", 7)
 
         p.builder(build_{stem})
 '''

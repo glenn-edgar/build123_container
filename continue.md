@@ -89,12 +89,22 @@ right. The prototype is in a clean state to support either.
 
 **Round-2 evaluation completed in this session** (the author's-path
 exercise). Scaffolded `part_coupler` + `asm_coupler_demo` from
-scratch using `mk part new`. Surfaced 5 new friction items, the
-most interesting being **R2.3: rigid mate always rotates child to
-align z-dirs** — users wanting pure-translation mating (fastener
-into hole, pin into bushing) can't express it. Worth a design pass
-on `mate(... align="z" | "position")` before coding. Full findings
-+ priorities in `docs/v2_evaluation.md` round-2 section.
+scratch using `mk part new`. Surfaced 5 new friction items.
+
+**Round-2 close-out followed immediately**: 4 of the 5 items closed
+in one commit. R2.1 (scaffold typed META hints), R2.2 (`mk asm new`),
+R2.3 (`mate(..., align="z"|"position")`), R2.5 (`z_dir` legend in
+`mk part show`). R2.4 skipped — header already labels coords as
+"world". The R2.3 design call landed cleanly: `align="position"`
+translates joint_a's origin to joint_b's origin with identity
+rotation, useful for pin-into-bushing / fastener-into-hole cases
+where the part's orientation should be preserved. `_solve_position`
+solver branch + 5 host tests + writing-parts.md table update.
+
+All friction-log items are now closed except the three explicitly
+deferred (BOM rewrite, diff apply, STEP determinism) and three
+documented surprises (OCC writer bug, container rebuild loop,
+model-viewer CDN dependency).
 
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at

@@ -41,13 +41,17 @@ with connect():
             joint_b="asm_coupler_demo.INST.motor.JOINT.shaft_a_tip",
             mate_type="rigid",
         )
-        # New mate: coupler.motor_end on lever.tip. Rigid for now;
-        # a revolute mate would be more physically faithful (the
-        # coupler can rotate around the lever tip pin) but rigid
-        # makes the static-pose render obvious.
+        # New mate: coupler.motor_end on lever.tip. align="position"
+        # (R2.3) — preserves the coupler's part-local orientation
+        # instead of rotating to align z-dirs. lever.tip has
+        # z_dir=[1,0,0] and coupler.motor_end has z_dir=[0,1,0];
+        # under the default align="z" the coupler would rotate 90°
+        # about Z. Position-mode keeps the bar lying along its
+        # part-local +X.
         a.mate(
             "d_coupler_to_lever",
             joint_a="asm_coupler_demo.INST.coupler.JOINT.motor_end",
             joint_b="asm_coupler_demo.INST.lever.JOINT.tip",
             mate_type="rigid",
+            align="position",
         )
