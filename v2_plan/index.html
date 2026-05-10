@@ -507,10 +507,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#b1-revolute-and-prismatic-mate-types-3-days" class="md-nav__link">
+  <a href="#b1-revolute-and-prismatic-mate-types-done-2026-05-10" class="md-nav__link">
     <span class="md-ellipsis">
       
-        B.1 — Revolute and prismatic mate types (~3 days)
+        B.1 — Revolute and prismatic mate types ✅ (done 2026-05-10)
       
     </span>
   </a>
@@ -518,13 +518,41 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#b2-live-animation-in-viewer-3-days" class="md-nav__link">
+  <a href="#b2-live-animation-in-viewer-split-into-ab" class="md-nav__link">
     <span class="md-ellipsis">
       
-        B.2 — Live animation in viewer (~3 days)
+        B.2 — Live animation in viewer (split into a/b)
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="B.2 — Live animation in viewer (split into a/b)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b2a-joint-state-injection-at-build-time-done-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.2.a — Joint-state injection at build time ✅ (done 2026-05-10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2b-browser-side-live-animation-deferred-to-a-follow-up-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.2.b — Browser-side live animation (deferred to a follow-up session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -795,10 +823,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#b1-revolute-and-prismatic-mate-types-3-days" class="md-nav__link">
+  <a href="#b1-revolute-and-prismatic-mate-types-done-2026-05-10" class="md-nav__link">
     <span class="md-ellipsis">
       
-        B.1 — Revolute and prismatic mate types (~3 days)
+        B.1 — Revolute and prismatic mate types ✅ (done 2026-05-10)
       
     </span>
   </a>
@@ -806,13 +834,41 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#b2-live-animation-in-viewer-3-days" class="md-nav__link">
+  <a href="#b2-live-animation-in-viewer-split-into-ab" class="md-nav__link">
     <span class="md-ellipsis">
       
-        B.2 — Live animation in viewer (~3 days)
+        B.2 — Live animation in viewer (split into a/b)
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="B.2 — Live animation in viewer (split into a/b)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#b2a-joint-state-injection-at-build-time-done-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.2.a — Joint-state injection at build time ✅ (done 2026-05-10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b2b-browser-side-live-animation-deferred-to-a-follow-up-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B.2.b — Browser-side live animation (deferred to a follow-up session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -1078,7 +1134,7 @@ acted-on, mate cycle detection) are either resolved or out-of-scope for v2.</p>
 <h2 id="phase-b-simulation-actuation-2-weeks">Phase B — simulation + actuation (~2 weeks)<a class="headerlink" href="#phase-b-simulation-actuation-2-weeks" title="Permanent link">&para;</a></h2>
 <p>The differentiator. mk-cad's database-backed approach starts paying off when
 the same KB rows that produce geometry also drive software simulation.</p>
-<h3 id="b1-revolute-and-prismatic-mate-types-3-days">B.1 — Revolute and prismatic mate types (~3 days)<a class="headerlink" href="#b1-revolute-and-prismatic-mate-types-3-days" title="Permanent link">&para;</a></h3>
+<h3 id="b1-revolute-and-prismatic-mate-types-done-2026-05-10">B.1 — Revolute and prismatic mate types ✅ (done 2026-05-10)<a class="headerlink" href="#b1-revolute-and-prismatic-mate-types-done-2026-05-10" title="Permanent link">&para;</a></h3>
 <p>Spec the constraint in <code>MATE.properties</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  <span class="s2">&quot;mate_type&quot;</span><span class="p">:</span> <span class="s2">&quot;revolute&quot;</span><span class="p">,</span>
@@ -1094,19 +1150,23 @@ and <code>limits</code> in mm.</p>
 <p>Mate solver pre-applies <code>default</code> (or <code>current</code> from a state file) to compute
 the world transform. <code>mk build</code> and <code>mk show</code> render the assembly at that
 state. Animation (B.2) sweeps the value over time.</p>
-<h3 id="b2-live-animation-in-viewer-3-days">B.2 — Live animation in viewer (~3 days)<a class="headerlink" href="#b2-live-animation-in-viewer-3-days" title="Permanent link">&para;</a></h3>
-<p>Two pieces:</p>
-<ol>
-<li><strong>Joint state injection.</strong> A small file <code>outputs/&lt;asm&gt;.state.json</code> carries
-   <code>{"joint_&lt;n&gt;": angle_deg}</code>. <code>mk show</code> reads it; mate solver applies these
-   as overrides; emitted glTF reflects the state.</li>
-<li><strong>Browser-side animation.</strong> <code>mk show --animate</code> emits a glTF with
-   per-revolute-joint nodes, plus a JS shim that polls
-   <code>&lt;asm&gt;.state.json</code> (or a WebSocket) and updates node transforms in the
-   <code>&lt;model-viewer&gt;</code> scene without a page reload.</li>
-</ol>
-<p>Controller-under-test writes a state file or pushes to a small relay; the
-viewer shows the controller-driven motion live.</p>
+<h3 id="b2-live-animation-in-viewer-split-into-ab">B.2 — Live animation in viewer (split into a/b)<a class="headerlink" href="#b2-live-animation-in-viewer-split-into-ab" title="Permanent link">&para;</a></h3>
+<p>Originally scoped as one drop; split during implementation because
+browser-side scene-graph manipulation needs a viewer swap (see B.2.b).</p>
+<h4 id="b2a-joint-state-injection-at-build-time-done-2026-05-10">B.2.a — Joint-state injection at build time ✅ (done 2026-05-10)<a class="headerlink" href="#b2a-joint-state-injection-at-build-time-done-2026-05-10" title="Permanent link">&para;</a></h4>
+<p><code>mk build</code> reads <code>outputs/&lt;asm&gt;/state.json</code> (overridable with
+<code>--state &lt;path&gt;</code>). Format: <code>{"&lt;mate_name&gt;": &lt;value&gt;, ...}</code>. State values
+override each mate's manifest <code>default</code>. Verbose log tags the source
+(<code>[default]</code> vs <code>[state.json]</code>) and clamps to limits with a stderr WARN
+if exceeded. Static-pose use case: controller writes state.json, user
+reruns <code>mk build</code> + <code>mk show</code> to see the new pose. Build cost: 1–3 s
+per state change.</p>
+<h4 id="b2b-browser-side-live-animation-deferred-to-a-follow-up-session">B.2.b — Browser-side live animation (deferred to a follow-up session)<a class="headerlink" href="#b2b-browser-side-live-animation-deferred-to-a-follow-up-session" title="Permanent link">&para;</a></h4>
+<p>Per-inst nodes in glTF + JS that polls <code>state.json</code> (~10 Hz) and updates
+the scene graph without rebuilding. Estimated 2–3 days. Requires
+swapping <code>&lt;model-viewer&gt;</code> for direct three.js (model-viewer doesn't
+expose a stable scene-graph API). The B.2.a state.json format and
+override logic carry over directly.</p>
 <h3 id="b3-typed-meta-schema-2-days">B.3 — Typed META schema (~2 days)<a class="headerlink" href="#b3-typed-meta-schema-2-days" title="Permanent link">&para;</a></h3>
 <p>Replace free-form <code>META.&lt;key&gt;</code> rows with a typed schema. Group keys by
 namespace prefix:</p>
