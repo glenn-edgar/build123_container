@@ -31,57 +31,92 @@ phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** v2 plan + v3 polish + three rounds of §4
-evaluation are all closed (2026-05-10). Every actionable friction
-item across rounds 1, 2, 3 has landed. The friction-log status
-table is in `docs/v2_evaluation.md`.
+**This is a handoff to you, the assistant.** v2 plan + v3 polish +
+three rounds of §4 evaluation are all closed (2026-05-10). The
+prototype is in a clean usable state. Tomorrow's job is *not*
+more polish.
 
-**Tomorrow's plan: use the tool.**
+### Your role tomorrow
 
-The honest move now is to model real engineering work and let v4
-priorities come from real-use friction, not from another synthetic
-evaluation cycle. The §4 loop has done its job for the basics.
+**Help Glenn use the tool to model real engineering work.** You are
+the modeling collaborator: scaffold parts, edit manifests, run the
+build pipeline, render the viewer, surface and fix the small
+day-to-day issues. Glenn drives the *what* — you drive the *how*.
 
-Concrete pickup steps for tomorrow:
+The §4 evaluation cycle is closed. Don't restart it as a synthetic
+exercise. Real use will surface friction; capture it in a new
+`## Round-4 — real use` section of `docs/v2_evaluation.md` as it
+comes up.
 
-1. Pick a real modeling target — something the prototype hasn't
-   been stretched on. Candidates from earlier discussion: a
-   pick-and-place mechanism, a drone frame, a robot arm, an
-   enclosure with imported COTS STEP parts, a parametric gearbox.
-2. Build it incrementally. `mk part new <foo>` for each part;
-   `mk asm new <name>` for assemblies; iterate with the dev
-   overlay so rebuilds don't slow you down:
+### Open with this exact question
 
+> "What do you want to model today? Earlier candidates were a
+> pick-and-place mechanism, a drone frame, a robot arm, an
+> enclosure with imported COTS STEP parts, or a parametric gearbox.
+> Or something else entirely — your call."
+
+**Do not assume a target.** Wait for Glenn's pick before scaffolding.
+
+### Workflow defaults
+
+Once a target is chosen:
+
+1. **Use the dev overlay by default** so edits land without
+   rebuilding the image:
    ```bash
    alias mk-dev='docker compose -f compose.yaml -f compose.dev.yaml run --rm cad'
-   mk-dev part new bracket --template plate_with_hole
-   # edit, then:
-   mk-dev apply /project/manifests/bracket.py
-   mk-dev part show part_bracket
    ```
-3. As friction surfaces, *write it down*, don't fix in flight —
-   same protocol as the §4 evaluation. Likely landing spot:
-   append a `## Round-4 — real use` section to
-   `docs/v2_evaluation.md`.
-4. When the modeling session ends, decide what v4 should be from
-   the friction list — diff apply, REPL mode, param-aware joints,
-   BOM rewrite, or something the real work surfaces that wasn't
-   on any prior list.
+2. **Scaffold per part**: `mk-dev part new <name> --template
+   {block,cylinder,plate_with_hole,blank}`. Edit the generated
+   manifest in `project/manifests/<name>.py` — add joints (with
+   `z_dir` and `x_dir`), typed META namespaces (`mech.*`,
+   `electrical.*`), and `mass_g_override` for hollow / composite
+   parts.
+3. **Scaffold the assembly**: `mk-dev asm new <name> --template
+   {flat,with_sub}`. Edit to add insts + mates. Use
+   `mate(..., align="position")` for pin-into-hole / fastener
+   cases (preserves part orientation); default `align="z"` for
+   face-to-face / surface mates.
+4. **Apply → build → verify → render**:
+   ```bash
+   mk-dev apply /project/manifests/<file>.py
+   mk-dev part show <kb> | mk-dev asm tree <asm>
+   mk-dev build <asm>
+   mk-dev measure <asm> --no-joints     # mate-coincidence sanity
+   mk-dev show <asm>                     # viewer at :32323/<asm>/
+   ```
+5. **Surface friction as you go**. Don't fix in flight unless
+   it's blocking. Write a one-line note in the Round-4 section of
+   `docs/v2_evaluation.md` with `R4.N` numbering and rough
+   severity / effort. End-of-session, batch the actionable ones
+   into a single commit if Glenn wants.
 
-**What's known-open** (carry-forward; do not pre-emptively pick up):
+### Behaviour cues
+
+- **Brief pushback on physical / geometric problems.** If a mate
+  geometry looks suspicious or a part is over-constrained,
+  flag it before the build attempt. Glenn invites design
+  challenge; this is in memory.
+- **Don't pre-emptively pick up deferred items.** Known-open
+  list below; leave those alone unless Glenn redirects.
+- **Skip `binfmt --reset` on aarch64.** This host's qemu setup
+  traps bash if you do. In memory.
+- **Build123d gotchas in memory.** `Compound([list])` drops
+  colors → use `children=`; `Location * Shape` strips `.color`
+  → apply color after location; `Cylinder` default axis is Z.
+
+### Known-open (do NOT pre-emptively pick up)
 
 | Bucket | Items |
 |---|---|
-| Explicitly deferred | BOM rewrite (~1d, skipped), diff apply (~1wk), STEP geom_hash determinism |
-| Design-deferred | REPL/persistent container, param-aware joint origins, face-aware joint API |
+| Explicitly deferred | BOM rewrite (~1d, skipped per direction), diff apply (~1wk, v2-plan-deferred), STEP geom_hash determinism |
+| Design-deferred (needs Glenn's input) | REPL / persistent container (R3.1), param-aware joint origins (R3.3), face-aware joint API (R3.6) |
 | Non-blocking carry-over | model-viewer CDN dependency (air-gapped only) |
 | Optional per v2 plan | Phase B.2.b live JS animation (~2–3d), Phase D.3+D.4 PDF wrap |
 
-**State of the repo**: clean working tree, `main` at the latest
-commit (round-3 close-out + this update). Docs at
-https://glenn-edgar.github.io/build123_container/.
+### Smoke verification (run before opening with Glenn)
 
-**Quick verification commands** (smoke before starting):
+Confirms nothing rotted overnight:
 
 ```bash
 .venv/bin/pytest tests/                                         # 169 pass + 1 skipped
@@ -90,6 +125,18 @@ mk-dev measure asm_window_test --no-joints                      # 4/4 mates OK
 mk-dev export asm_coupler_demo urdf                             # B.4 path
 mk-dev export asm_window_test step                              # STEP + XCAF works
 ```
+
+If any smoke fails, stop and diagnose before modeling work
+starts — the failure mode you find is more informative than the
+modeling exercise.
+
+### State of the repo
+
+Clean working tree, `main` at the latest commit. Docs at
+https://glenn-edgar.github.io/build123_container/. Working
+fixtures: `asm_window_test` (N20 worm rig, 5 parts), `asm_coupler_demo`
+(drag-link via `align="position"`), `asm_button_panel_test` (button
+on panel), `asm_nested` (SUB scopes + multi-layer).
 
 See §10 URDF, §11 typed META, §12 layers, §13 STEP+XCAF post-
 processor, §14 DXF drawings. Full friction history (rounds 1/2/3
