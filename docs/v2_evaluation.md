@@ -6,26 +6,29 @@ on the motor) plus `asm_nested` (SUB-scope multi-layer test).
 
 ## v3 status (updated 2026-05-10)
 
-Three v3 commits landed in the same session as the evaluation:
+Four v3 commits landed in the same session as the evaluation:
 
 | Commit | Items addressed |
 |---|---|
 | `42c880c` v3 quick wins | #2 typed-META in show, #3 joint dirs in show, #11 measure column alignment, #15 ensure_ascii, #18 no-such-asm vs empty, #21 ezdxf log noise, #23 layer ls trailing whitespace |
 | `264b2b2` layout + state CLI | #8 unified output layout, #16 `mk state ls/set/reset` |
 | `1cd93bf` mass + show cleanup | #10 mass summary-first, #13 show always announces layer state |
+| `e947293` round 2 | #4 URDF short link names, #5 URDF float-noise threshold, #6 `mk asm list`, #12 measure mate-coincidence, #14 `mk part show --json`, #17 (verified clean — no leak), #20 README refresh, plus stale-mesh cleanup on URDF re-export and writing-parts.md API table refresh (covers #22) |
+
+**Closed since the snapshot**: 16 of 23 items.
 
 **Still open** after this v3 pass:
 - **#1 BOM rewrite** — explicitly deferred at user direction.
-- **#4 URDF link names verbose for flat assemblies** — ~2h, unaddressed.
-- **#5 URDF inertia float-noise off-diagonals** — ~1h, unaddressed.
-- **#6 `mk asm list`** — ~30min, unaddressed.
 - **#7 Diff apply** — explicitly deferred (~1wk, invasive).
-- **#12 `mk measure` mate-coincidence check** — ~1h, unaddressed.
-- **#14 `mk part show --json` alias** — ~15min, unaddressed (`mk part export` covers the use case).
-- **#17 `mk apply` verbose path leakage** — verify only, may already be clean.
 - **#19 STEP geom_hash non-determinism** — v3-deferred per continue.md §9.
-- **#20 README staleness** — unaddressed.
-- **#22 `a_/b_/c_/d_` mate-name vestiges** — cosmetic, unaddressed.
+- **Surprises A, B, C** — OCC STEP XCAF multi-layer bug (documented in
+  step_xcaf.py); container build time (would benefit from a
+  compose.dev.yaml with bind-mounted src); `<model-viewer>` CDN
+  dependency. None are blocking; all are documented.
+
+That's the whole list. The prototype is in a clean state for the
+"build real parts, drive v3+" cycle — pause the polish loop, exercise
+the tool on actual work, and let the next round of friction surface.
 
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
