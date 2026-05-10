@@ -484,10 +484,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#phase-a-close-v1x-gaps-1-week" class="md-nav__link">
+  <a href="#phase-a-close-v1x-gaps-done-2026-05-10" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Phase A — close v1.x gaps (~1 week)
+        Phase A — close v1.x gaps ✅ (done 2026-05-10)
       
     </span>
   </a>
@@ -772,10 +772,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#phase-a-close-v1x-gaps-1-week" class="md-nav__link">
+  <a href="#phase-a-close-v1x-gaps-done-2026-05-10" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Phase A — close v1.x gaps (~1 week)
+        Phase A — close v1.x gaps ✅ (done 2026-05-10)
       
     </span>
   </a>
@@ -1028,52 +1028,53 @@
 half-built dependencies behind. Total estimate ~5–6 weeks of focused work.</p>
 <p>This document is the v2 commitment; updates land here, not in <code>continue.md</code>
 §11 (which records the original rev-2 deferrals).</p>
-<h2 id="phase-a-close-v1x-gaps-1-week">Phase A — close v1.x gaps (~1 week)<a class="headerlink" href="#phase-a-close-v1x-gaps-1-week" title="Permanent link">&para;</a></h2>
-<p>Small fixes that finish the v1 prototype's rough edges. Each unblocks more
+<h2 id="phase-a-close-v1x-gaps-done-2026-05-10">Phase A — close v1.x gaps ✅ (done 2026-05-10)<a class="headerlink" href="#phase-a-close-v1x-gaps-done-2026-05-10" title="Permanent link">&para;</a></h2>
+<p>Small fixes that finished the v1 prototype's rough edges. Each unblocks more
 ambitious work later.</p>
 <table>
 <thead>
 <tr>
 <th>Item</th>
-<th>Effort</th>
+<th>Status</th>
 <th>Notes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>SUB-nested mate paths parse correctly</td>
-<td>~1 hr</td>
-<td>Update <code>mate.py</code>'s regex + INST-lookup to use full path, not just leaf name. Same fix in <code>measure.py</code>.</td>
+<td>✅</td>
+<td><code>JOINT_PATH_RE</code> now matches <code>&lt;asm&gt;[.SUB.&lt;s&gt;]*.INST.&lt;i&gt;.JOINT.&lt;j&gt;</code>. INST lookups use full path (leaf names collide across SUB scopes). <code>nested_asm.py</code> fixture builds end-to-end.</td>
 </tr>
 <tr>
 <td>Topo-sort mates instead of name-prefix discipline</td>
-<td>~1 hr</td>
-<td>Build a DAG from joint_a.inst → joint_b.inst, process in topological order. Detects cycles too.</td>
+<td>✅</td>
+<td>Kahn's algorithm over inst-dependency DAG. Cycles + over-constraints raise ValueError before any DB write. Naming discipline no longer required; verified via <code>topo_chain.py</code> fixture with scrambled names.</td>
 </tr>
 <tr>
 <td><code>META.mass_g_override</code></td>
-<td>~30 min</td>
-<td>When present on a part, supersedes the volume×density calc in <code>mass.py</code>.</td>
+<td>✅</td>
+<td>When present, supersedes volume×density. Inertia stays consistent via virtual-density factor. N20 motor in <code>asm_window_test</code> now reports 10 g (was 43 g).</td>
 </tr>
 <tr>
 <td>Multi-assembly viewer</td>
-<td>~2 hr</td>
-<td><code>mk show &lt;asm&gt;</code> writes to <code>outputs/&lt;asm&gt;/index.html</code> instead of overwriting. Optional outputs/index.html lists all assemblies.</td>
+<td>✅</td>
+<td><code>mk show &lt;asm&gt;</code> writes to <code>outputs/&lt;asm&gt;/</code>. Top-level <code>outputs/index.html</code> lists all assemblies. Browser URL: <code>/&lt;asm&gt;/</code>.</td>
 </tr>
 <tr>
 <td><code>mk part rm &lt;kb&gt;</code></td>
-<td>~30 min</td>
-<td>Truncate the named KB and its <code>knowledge_base_info</code> row.</td>
+<td>✅</td>
+<td>Default = dry-run with row count + warning if any other assembly's INST still references the part. <code>--force</code> actually deletes.</td>
 </tr>
 <tr>
 <td>pytest harness</td>
-<td>~2 hr</td>
-<td><code>pip install -e .[dev]</code> with pytest extra; tests/test_smoke.py + tests/test_mate_solver.py.</td>
+<td>✅</td>
+<td><code>pyproject.toml</code> has <code>[project.optional-dependencies] dev = ["pytest&gt;=7"]</code> + <code>[tool.pytest.ini_options]</code>. <code>tests/conftest.py</code> skips OCP-needing tests on host. 26 tests in <code>test_imports.py</code> + <code>test_mate.py</code> (parse, matrix math, topo sort) — all passing on host via <code>.venv/bin/pytest</code>.</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Definition of done:</strong> all v1.x backlog items in <code>continue.md</code> §9 are closed
-or moved to a later phase.</p>
+<p><strong>Phase A definition of done met.</strong> Remaining v1.x items in <code>continue.md</code>
+§9 (STEP geom_hash determinism, color-rendering subtleties documented but
+acted-on, mate cycle detection) are either resolved or out-of-scope for v2.</p>
 <h2 id="phase-b-simulation-actuation-2-weeks">Phase B — simulation + actuation (~2 weeks)<a class="headerlink" href="#phase-b-simulation-actuation-2-weeks" title="Permanent link">&para;</a></h2>
 <p>The differentiator. mk-cad's database-backed approach starts paying off when
 the same KB rows that produce geometry also drive software simulation.</p>
