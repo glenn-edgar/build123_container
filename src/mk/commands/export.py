@@ -18,7 +18,7 @@ DEFAULT_OUTDIR = "/project/outputs"
 def add_parser(subparsers) -> None:
     p = subparsers.add_parser("export", help="Export assembly geometry.")
     p.add_argument("asm_kb")
-    p.add_argument("format", choices=["step", "stl", "brep"])
+    p.add_argument("format", choices=["step", "stl", "brep", "urdf"])
     p.add_argument("--db", default=DEFAULT_DB_PATH)
     p.add_argument("--outdir", default=DEFAULT_OUTDIR)
     p.set_defaults(func=run)
@@ -26,6 +26,9 @@ def add_parser(subparsers) -> None:
 
 def run(args: argparse.Namespace) -> int:
     conn = open_db(args.db)
+
+    if args.format == "urdf":
+        return _run_urdf(conn, args)
 
     rows = conn.execute(
         "SELECT path, name, properties FROM knowledge_base "
@@ -82,4 +85,28 @@ def run(args: argparse.Namespace) -> int:
 
     conn.close()
     print(f"wrote {out_path}  ({out_path.stat().st_size} bytes)")
+    return 0
+
+
+def _run_urdf(conn, args: argparse.Namespace) -> int:
+    """URDF needs a different output layout (per-asm subdir with meshes/);
+    it shares the DB but not the single-Compound flow above.
+    """
+    from mk.urdf import build_urdf
+
+    asm_outdir = Path(args.outdir) / args.asm_kb
+    try:
+        urdf_path = build_urdf(conn, args.asm_kb, asm_outdir)
+    except RuntimeError as e:
+        print(f"  ERR: {e}", file=sys.stderr)
+        conn.close()
+        return 1
+    conn.close()
+
+    mesh_count = len(list((asm_outdir / "meshes").glob("*.stl")))
+    print(
+        f"wrote {urdf_path}  ({urdf_path.stat().st_size} bytes) "
+        f"+ {mesh_count} mesh{'es' if mesh_count != 1 else ''} "
+        f"in {asm_outdir / 'meshes'}"
+    )
     return 0

@@ -297,32 +297,17 @@ def _topo_sort_mates(parsed: list[dict]) -> list[dict]:
     return [parsed[i] for i in order]
 
 
-def solve_assembly(
-    conn: sqlite3.Connection,
-    asm_kb: str,
-    *,
-    verbose: bool = False,
-    state_overrides: dict[str, float] | None = None,
-) -> int:
-    """Resolve all mates in the assembly. Returns count processed.
+def _parse_mate_rows(conn: sqlite3.Connection, asm_kb: str) -> list[dict]:
+    """Parse MATE rows, skipping unsupported types (with a printed warning).
 
-    Each mate produces inst_a's transform relative to inst_b's local frame.
-    The result is composed with inst_b's already-resolved world transform
-    so chains land in correct world coords. Mates fire in topological
-    order of the inst-dependency graph; cycles raise ValueError.
-
-    For revolute / prismatic mates, the DOF value comes from
-    ``state_overrides[mate_name]`` if present (Phase B.2 state injection),
-    else ``MATE.properties.default`` from the manifest, else 0.0.
+    Returned dicts include joint paths, axis, limits, default — everything
+    the per-mate solvers need to recompute a transform for any DOF state.
     """
-    state_overrides = state_overrides or {}
     mate_rows = conn.execute(
         "SELECT name, properties FROM knowledge_base "
         "WHERE knowledge_base = ? AND label = 'MATE'",
         (asm_kb,),
     ).fetchall()
-
-    # Parse all mates upfront so the topo sort can see the dependency graph.
     parsed: list[dict] = []
     SUPPORTED = {"rigid", "revolute", "prismatic"}
     for r in mate_rows:
@@ -343,69 +328,114 @@ def solve_assembly(
             "a_path": a_path, "a_name": a_name, "joint_a_name": joint_a_name,
             "b_path": b_path, "b_name": b_name, "joint_b_name": joint_b_name,
             "axis": p.get("axis", [0.0, 0.0, 1.0]),
-            "limits": p.get("limits"),  # [lo, hi] or None
-            "default": p.get("default"),  # float or None
+            "limits": p.get("limits"),
+            "default": p.get("default"),
         })
+    return parsed
+
+
+def compute_world_transforms(
+    conn: sqlite3.Connection,
+    asm_kb: str,
+    *,
+    state_overrides: dict[str, float] | None = None,
+    parsed: list[dict] | None = None,
+) -> dict[str, tuple[list[list[float]], list[float]]]:
+    """Pure-compute world transforms for every INST in the assembly.
+
+    No DB writes. Returns ``{inst_path: (rotation_3x3, translation_3)}``.
+    Insts that are roots of the mate tree (never appear as joint_a) map to
+    the identity transform.
+
+    Used by `solve_assembly` (which then writes the result back) and by
+    the URDF exporter (which wants the DOF=0 baseline without touching
+    the live build state).
+    """
+    state_overrides = state_overrides or {}
+    parsed = parsed if parsed is not None else _parse_mate_rows(conn, asm_kb)
+
+    # Seed every INST at identity so unmated roots and joint_b chain roots
+    # have an entry. URDF exporter relies on this; solve_assembly is
+    # unaffected because the identity rows it doesn't overwrite are
+    # equivalent to "no mate set this inst's location".
+    resolved: dict[str, tuple[list[list[float]], list[float]]] = {}
+    inst_rows = conn.execute(
+        "SELECT path FROM knowledge_base "
+        "WHERE knowledge_base = ? AND label = 'INST'",
+        (asm_kb,),
+    ).fetchall()
+    for r in inst_rows:
+        resolved[r["path"]] = (_identity_rot(), [0.0, 0.0, 0.0])
 
     if not parsed:
-        return 0
+        return resolved
 
-    parsed = _topo_sort_mates(parsed)
-
-    # Track world transforms resolved in this pass so chain composition is
-    # idempotent across repeated `mk build` calls (we never read stale
-    # locations back from the DB).
-    resolved: dict[str, tuple[list[list[float]], list[float]]] = {}
-
-    n_solved = 0
-    for m in parsed:
+    for m in _topo_sort_mates(parsed):
         a_path = m["a_path"]
         b_path = m["b_path"]
-        a_name = m["a_name"]
-        b_name = m["b_name"]
-        joint_a_name = m["joint_a_name"]
-        joint_b_name = m["joint_b_name"]
-
         ref_a = _read_inst_ref_kb(conn, asm_kb, a_path)
         ref_b = _read_inst_ref_kb(conn, asm_kb, b_path)
+        ja_origin, ja_zdir = _read_joint_frame(conn, ref_a, m["joint_a_name"])
+        jb_origin, jb_zdir = _read_joint_frame(conn, ref_b, m["joint_b_name"])
 
-        ja_origin, ja_zdir = _read_joint_frame(conn, ref_a, joint_a_name)
-        jb_origin, jb_zdir = _read_joint_frame(conn, ref_b, joint_b_name)
-
-        # Dispatch on mate type. Each solver returns (rotation, translation)
-        # for inst_a relative to inst_b's local frame.
         mate_type = m["mate_type"]
         if mate_type == "rigid":
             rel_rot, rel_trans = _solve_rigid(ja_origin, ja_zdir, jb_origin, jb_zdir)
-        elif mate_type in ("revolute", "prismatic"):
-            # DOF value: state override > manifest default > 0.
+        else:
             raw = state_overrides.get(m["name"], m["default"]) or 0.0
             unit = "deg" if mate_type == "revolute" else "mm"
             value = _clamp_dof(float(raw), m["limits"], m["name"], unit)
-            m["_dof_value"] = value  # for verbose logging below
+            m["_dof_value"] = value
             if mate_type == "revolute":
                 rel_rot, rel_trans = _solve_revolute(
                     ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], value,
                 )
-            else:
+            else:  # prismatic
                 rel_rot, rel_trans = _solve_prismatic(
                     ja_origin, ja_zdir, jb_origin, jb_zdir, m["axis"], value,
                 )
-        else:  # unreachable — filtered upstream
-            raise ValueError(f"unknown mate_type {mate_type!r}")
 
-        # Compose with inst_b's already-resolved world transform:
-        #   T_a_world = T_b_world ∘ T_a_rel_to_b
-        # As (R, t):  (R_b R_rel,  R_b @ t_rel + t_b)
-        # Insts not yet resolved (e.g., the chain root) are at identity.
-        # Keyed by inst PATH so SUB-nested chains compose correctly.
-        b_rot, b_trans = resolved.get(b_path, (_identity_rot(), [0.0, 0.0, 0.0]))
+        b_rot, b_trans = resolved[b_path]
         composed_rot = _matmul3(b_rot, rel_rot)
         composed_trans = [
             x + y for x, y in zip(_matvec3(b_rot, rel_trans), b_trans, strict=True)
         ]
         resolved[a_path] = (composed_rot, composed_trans)
 
+    return resolved
+
+
+def solve_assembly(
+    conn: sqlite3.Connection,
+    asm_kb: str,
+    *,
+    verbose: bool = False,
+    state_overrides: dict[str, float] | None = None,
+) -> int:
+    """Resolve all mates in the assembly and write inst locations to the DB.
+
+    Each mate produces inst_a's transform relative to inst_b's local frame.
+    The result is composed with inst_b's already-resolved world transform
+    so chains land in correct world coords. Mates fire in topological
+    order of the inst-dependency graph; cycles raise ValueError.
+
+    For revolute / prismatic mates, the DOF value comes from
+    ``state_overrides[mate_name]`` if present (Phase B.2 state injection),
+    else ``MATE.properties.default`` from the manifest, else 0.0.
+    """
+    parsed = _parse_mate_rows(conn, asm_kb)
+    if not parsed:
+        return 0
+
+    resolved = compute_world_transforms(
+        conn, asm_kb, state_overrides=state_overrides, parsed=parsed,
+    )
+
+    # Write back: only insts that were touched (appeared as joint_a in some
+    # mate) get persisted, matching pre-refactor behaviour.
+    touched_paths = {m["a_path"] for m in parsed}
+    for a_path in touched_paths:
+        composed_rot, composed_trans = resolved[a_path]
         a_props = json.loads(
             conn.execute(
                 "SELECT properties FROM knowledge_base "
@@ -419,21 +449,25 @@ def solve_assembly(
             "WHERE knowledge_base = ? AND label = 'INST' AND path = ?",
             (json.dumps(a_props), asm_kb, a_path),
         )
-        if verbose:
+
+    if verbose:
+        state_overrides = state_overrides or {}
+        for m in _topo_sort_mates(parsed):
             type_tag = m["mate_type"]
-            if mate_type in ("revolute", "prismatic"):
-                unit = "deg" if mate_type == "revolute" else "mm"
+            if m["mate_type"] in ("revolute", "prismatic"):
+                unit = "deg" if m["mate_type"] == "revolute" else "mm"
                 source = "state.json" if m["name"] in state_overrides else "default"
-                type_tag = f"{mate_type} @ {m['_dof_value']:g} {unit} [{source}]"
+                # compute_world_transforms stamped the clamped value into _dof_value;
+                # reuse it here so the limit warning doesn't double-fire.
+                value = m.get("_dof_value", 0.0)
+                type_tag = f"{m['mate_type']} @ {value:g} {unit} [{source}]"
+            ct = resolved[m["a_path"]][1]
             print(
                 f"  mate {m['name']} ({type_tag}): "
-                f"{a_name}.{joint_a_name} ↔ {b_name}.{joint_b_name}"
+                f"{m['a_name']}.{m['joint_a_name']} ↔ "
+                f"{m['b_name']}.{m['joint_b_name']}"
             )
-            print(
-                f"    world loc=({composed_trans[0]:.3f}, "
-                f"{composed_trans[1]:.3f}, {composed_trans[2]:.3f})"
-            )
-        n_solved += 1
+            print(f"    world loc=({ct[0]:.3f}, {ct[1]:.3f}, {ct[2]:.3f})")
 
     conn.commit()
-    return n_solved
+    return len(parsed)

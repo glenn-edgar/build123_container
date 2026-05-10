@@ -8,18 +8,18 @@ verbatim in §2 below. Working history (what landed when) lives in
 
 ## 0. Where we are
 
-**v1 baselined** 2026-05-09. **Phase A of v2 complete; Phase B underway**
+**v1 baselined** 2026-05-09. **Phase A complete; Phase B 3/4 done**
 as of 2026-05-10.
 
 | Phase | Status | What landed |
 |---|---|---|
 | v1 | ✅ | All six rev-2 phases. `asm_window_test` is the working evaluation rig. |
-| Phase A — v1.x gaps | ✅ (6/6) | SUB-mate paths; topo-sort solver; `META.mass_g_override`; multi-asm viewer (`outputs/<asm>/`); `mk part rm`; pytest harness (45 host tests). |
+| Phase A — v1.x gaps | ✅ (6/6) | SUB-mate paths; topo-sort solver; `META.mass_g_override`; multi-asm viewer (`outputs/<asm>/`); `mk part rm`; pytest harness. |
 | Phase B.1 — revolute/prismatic mates | ✅ | `mate(... mate_type="revolute", axis=, limits=, default=)`. Pure-Python Rodrigues math, host-tested. `tests/fixtures/hinge_demo.py` exercises it. |
 | Phase B.2.a — state-injection at build time | ✅ | `mk build` reads `outputs/<asm>/state.json` (or `--state <path>`). Override + clamping working. |
 | Phase B.2.b — live animation in viewer | ⏳ deferred | needs `<model-viewer>` → three.js swap; ~2–3 days. |
 | Phase B.3 — typed META schema | ⏳ not started | namespaced META keys (`electrical.*`, `mech.*`, `encoder.*`); `mk part export <kb> --json` for sim contract; ~2 days. |
-| Phase B.4 — URDF export | ⏳ not started | `mk export <asm> urdf` for ROS Gazebo / MuJoCo / Drake; needs revolute mates (have them) and mass override (have it); ~3 days. |
+| Phase B.4 — URDF export | ✅ | `mk export <asm> urdf` writes URDF + per-link STL in `outputs/<asm>/`. Per-link mass/CoM/inertia tensor (kg·m² at CoM) via OCP GProps. Revolute / prismatic / rigid mates → URDF `revolute` / `continuous` / `prismatic` / `fixed` joints. Multi-root → synthesized `world` link. Smoke-tested on `asm_hinge` (revolute) and `asm_window_test` (4 fixed joints). 76 host tests pass. |
 | Phase C — layers | ⏳ | per `docs/v2_layers.md`; ~1 wk. |
 | Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF; ~1.5 wk. |
 
@@ -28,47 +28,45 @@ phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** Three reasonable next picks, in order of leverage:
+**Read this first.** With B.4 done (URDF export), Phase B is 3/4
+finished. The remaining two B items plus Phase C are all on the table:
 
-1. **Phase B.4 — URDF export** (~3 days). The most self-contained item left
-   in Phase B. Lets you drop `asm_window_test` into ROS Gazebo / MuJoCo /
-   Drake for full physics simulation of the controller-under-test.
-   Prerequisites already met: revolute mates (B.1) for joints; mass
-   override (Phase A item 3) for accurate inertia. Implementation: each
-   INST → `<link>` with mass + inertia from `mk mass`; revolute MATEs →
-   `<joint>` with `<axis>` + `<limit>`; rigid mates collapse into static
-   transforms; per-link mesh refs to STL files we already export.
-
-2. **Phase B.3 — typed META schema** (~2 days). Namespaced META keys
+1. **Phase B.3 — typed META schema** (~2 days). Namespaced META keys
    (`electrical.voltage_nominal_v`, `mech.gear_ratio`, `encoder.cpr`)
    with backward-compat for existing flat keys. Adds `mk part export
    <kb> --json` so the controller-under-test code consumes a structured
-   sim-contract document. More admin / refactor than feature.
+   sim-contract document. Completes the "make the rig sim-consumable"
+   arc that B.4 started (URDF = kinematics, META JSON = electrical/mech).
+
+2. **Phase C — layers** (~1 week). LAYER sentinel + visibility filter
+   per `docs/v2_layers.md`. Adds `mk layer ls/set/all/color`, threads
+   through `mk show`, `mk export step`, `mk mass`, `mk bom`. Phase D
+   (drawings → DXF) genuinely depends on this. Pure new-feature work.
 
 3. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
    `<model-viewer>` with direct three.js so the scene graph can be
-   updated from `state.json` polling without rebuilding. The B.2.a
-   format and override logic already in place; this is purely the
-   viewer-side rewrite.
+   updated from `state.json` polling without rebuilding. Pure
+   frontend rewrite; B.2.a state format and override logic stay.
 
-My pick: **B.4**. Highest leverage (your rig becomes simulator-ready)
-and cleanest scope (no frontend rewrite, no schema migration).
+My pick: **B.3**, then **C**. B.3 closes Phase B cleanly and is the
+last sim-contract piece. Then Phase C opens the road to engineering
+drawings (D).
 
-If you'd rather start somewhere else entirely — Phase C (layers) or
-Phase D (drawings), both fully scoped in `docs/v2_plan.md` — also fine.
-Phase A and B.1+B.2.a are the foundation everything else can build on.
-
-**State of the repo**: clean working tree, `main` at `63fe148`,
-`gh-pages` at `015f481`. Docs live at
+**State of the repo**: clean working tree, `main` at the most recent
+B.4 commit. Docs live at
 https://glenn-edgar.github.io/build123_container/. mkdocs venv at
 `.venv/` (also has pytest installed).
 
 **Quick verification command** to make sure everything still works:
 ```bash
-.venv/bin/pytest tests/                      # 45 host tests, ~50 ms
-docker compose run --rm cad build asm_window_test  # smoke
-docker compose run --rm cad show asm_window_test
+.venv/bin/pytest tests/                          # 76 host tests, ~60 ms
+docker compose run --rm cad build asm_window_test     # rigid-only smoke
+docker compose run --rm cad export asm_window_test urdf   # B.4 smoke
+docker compose run --rm cad export asm_hinge urdf         # revolute smoke
 ```
+
+URDF output lives at `outputs/<asm>/<asm>.urdf` + `outputs/<asm>/meshes/`.
+See §10 (new) for the URDF conventions.
 
 ## 1. Definition of done — v1 ✅
 
@@ -335,3 +333,60 @@ Closed during Phase A:
   dangling INST refs).
 - ✅ pytest harness (26 tests on host via `.venv/bin/pytest`; OCP-needing
   tests gated behind a marker for in-container runs).
+
+## 10. URDF export (Phase B.4) — conventions
+
+`mk export <asm> urdf` writes to `outputs/<asm>/<asm>.urdf` with
+`outputs/<asm>/meshes/<link>.stl` alongside. Units are SI (kg, m, kg·m²)
+per URDF convention; STLs are mm-native with `scale="0.001 0.001 0.001"`
+on each `<mesh>` element.
+
+**Link frame** = the part's own build123d-local frame. Visual /
+collision / inertial origins are zero except for `<inertial>`, which
+places the CoM in link frame.
+
+**Joint frame** = child link frame at DOF=0. Joint origin is
+`inverse(T_parent) @ T_child` evaluated with all DOFs at zero. The
+axis vector from the manifest (`mate(... axis=[...])`) is emitted as-is
+because it's already in the joint frame under this convention.
+
+**Mate → URDF joint type**:
+- `rigid` → `fixed`
+- `revolute` with limits → `revolute` (degrees converted to radians)
+- `revolute` without limits → `continuous`
+- `prismatic` → `prismatic` (mm → m on the limit)
+
+**Tree topology**. Each INST is the child of at most one mate
+(enforced by the existing topo-sort solver). Single-root assemblies
+emit naturally. If multiple roots exist (disconnected parts), the
+exporter synthesizes a `<link name="world"/>` and fixes each free
+root to it.
+
+**Inertia**. Computed via two GProp_GProps passes per part: first at
+the origin (gives volume + CoM in part-local mm), second with the
+reference point at the CoM (gives the inertia tensor at the CoM in
+link frame). Density rules match `mk mass`: `META.density.value`
+(g/cm³, default 1.0) or `META.mass_g_override.value` (g) when present.
+
+**Color**. `META.color` hex string is parsed and emitted as a
+URDF `<material><color rgba="r g b 1"/></material>` block inside
+`<visual>`. Most ROS tools render this.
+
+**Effort / velocity limits**. URDF's `<limit>` element requires
+`effort` (N or N·m) and `velocity` (m/s or rad/s). We don't yet model
+these — placeholder `effort="100" velocity="1"` is emitted. Phase B.3
+typed META is where these properly live; until then the user can edit
+the URDF or override per-tool.
+
+**Smoke verifications**:
+- `asm_hinge` → 2 links, 1 revolute joint @ 0–π rad, mass 23.55 g per
+  leaf (matches `mk mass`).
+- `asm_window_test` → 5 links, 4 fixed joints, single root (`sheet`),
+  motor 10 g (mass_g_override), bracket 1.40 g (volume × ρ).
+
+**Not yet covered** (potential follow-ups):
+- Real ROS tool verification (urdf_viz, RViz, Gazebo). The XML
+  parses cleanly and the tree is well-formed; downstream importability
+  not exercised this session.
+- Effort/velocity limits from typed META (waits on Phase B.3).
+- `<gazebo>` extension blocks for friction / contact tuning.
