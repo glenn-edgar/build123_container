@@ -31,134 +31,69 @@ phase-by-phase log.
 
 ## 0a. Pick-up point for next session
 
-**Read this first.** v2 plan is effectively complete. All four phases
-(A, B, C, D) have shipped their must-haves; the remaining items are
-optional or low-priority. Three candidates if you want to keep
-extending the prototype:
+**Read this first.** v2 plan + v3 polish + three rounds of §4
+evaluation are all closed (2026-05-10). Every actionable friction
+item across rounds 1, 2, 3 has landed. The friction-log status
+table is in `docs/v2_evaluation.md`.
 
-1. **Phase B.2.b — live JS animation** (~2–3 days) **[my pick if any]**.
-   Last unbuilt B sub-phase. Replaces `<model-viewer>` with direct
-   three.js so the scene updates from `state.json` polling without
-   rebuilding. B.2.a's format and override logic are already in
-   place — pure viewer rewrite. Most concrete leverage of any open
-   item: makes the controller-in-the-loop story feel alive.
+**Tomorrow's plan: use the tool.**
 
-2. **Phase D.3+D.4 — PDF wrap** (~3 days, optional in v2 plan).
-   `ezdxf.addons.drawing` renders DXF to matplotlib → PDF. Drop-in
-   if it works cleanly; the DXF is the real engineering artifact
-   anyway and FreeCAD TechDraw / external `dxf2pdf` already fill the
-   gap.
+The honest move now is to model real engineering work and let v4
+priorities come from real-use friction, not from another synthetic
+evaluation cycle. The §4 loop has done its job for the basics.
 
-3. **DXF polish** — preserve exact lines + arcs instead of polyline
-   discretization. Current emitter writes every edge as a 24-segment
-   LWPOLYLINE; downstream tools handle that fine but a true LINE
-   entity for straight edges and ARC entity for circles would
-   produce cleaner geometry. ~1 day.
+Concrete pickup steps for tomorrow:
 
-4. **Evaluation phase** (per `continue.md` §4). Build a small library
-   of real parts, exercise the API, and write down friction. v3
-   priorities come from this list. The §4 list above hasn't been
-   exercised since v1 baseline — the cycle since has been pure
-   feature work.
+1. Pick a real modeling target — something the prototype hasn't
+   been stretched on. Candidates from earlier discussion: a
+   pick-and-place mechanism, a drone frame, a robot arm, an
+   enclosure with imported COTS STEP parts, a parametric gearbox.
+2. Build it incrementally. `mk part new <foo>` for each part;
+   `mk asm new <name>` for assemblies; iterate with the dev
+   overlay so rebuilds don't slow you down:
 
-My pick: **#4 (evaluation) or #1 (B.2.b)**. v2's scope is done; the
-honest next move is to use what's built and let real-use friction
-drive v3 priorities. If you want one more polish phase first, B.2.b
-is the highest-leverage of the open items.
+   ```bash
+   alias mk-dev='docker compose -f compose.yaml -f compose.dev.yaml run --rm cad'
+   mk-dev part new bracket --template plate_with_hole
+   # edit, then:
+   mk-dev apply /project/manifests/bracket.py
+   mk-dev part show part_bracket
+   ```
+3. As friction surfaces, *write it down*, don't fix in flight —
+   same protocol as the §4 evaluation. Likely landing spot:
+   append a `## Round-4 — real use` section to
+   `docs/v2_evaluation.md`.
+4. When the modeling session ends, decide what v4 should be from
+   the friction list — diff apply, REPL mode, param-aware joints,
+   BOM rewrite, or something the real work surfaces that wasn't
+   on any prior list.
 
-**Evaluation completed in this session** — see `docs/v2_evaluation.md`
-for the prioritized friction log (23 items + 3 surprises). The doc's
-"v3 status" section tracks which items landed.
+**What's known-open** (carry-forward; do not pre-emptively pick up):
 
-**v3 polish complete** (same session): 16 of 23 friction items
-closed across 4 commits — quick wins, output-layout + `mk state` CLI,
-mass/show summary cleanup, and a second round covering URDF
-short-names + float-noise threshold + mate-coincidence sanity + `mk
-asm list` + `mk part show --json` + README refresh. The eval doc's
-v3-status table tracks the per-commit mapping.
+| Bucket | Items |
+|---|---|
+| Explicitly deferred | BOM rewrite (~1d, skipped), diff apply (~1wk), STEP geom_hash determinism |
+| Design-deferred | REPL/persistent container, param-aware joint origins, face-aware joint API |
+| Non-blocking carry-over | model-viewer CDN dependency (air-gapped only) |
+| Optional per v2 plan | Phase B.2.b live JS animation (~2–3d), Phase D.3+D.4 PDF wrap |
 
-**Still open**: BOM rewrite (deferred per direction), diff apply
-(~1wk, deferred per v2 plan), STEP geom_hash determinism (v3-
-deferred), three documented surprises (OCC writer bug, container
-rebuild time, model-viewer CDN). Nothing blocking.
-
-Next session: either run the §4 evaluation loop again on actual
-new work (find what hurts in *real* use of the polished tool), or
-pick one of the three deferred-by-decision items if the timing's
-right. The prototype is in a clean state to support either.
-
-**Round-2 evaluation completed in this session** (the author's-path
-exercise). Scaffolded `part_coupler` + `asm_coupler_demo` from
-scratch using `mk part new`. Surfaced 5 new friction items.
-
-**Round-2 close-out followed immediately**: 4 of the 5 items closed
-in one commit. R2.1 (scaffold typed META hints), R2.2 (`mk asm new`),
-R2.3 (`mate(..., align="z"|"position")`), R2.5 (`z_dir` legend in
-`mk part show`). R2.4 skipped — header already labels coords as
-"world". The R2.3 design call landed cleanly: `align="position"`
-translates joint_a's origin to joint_b's origin with identity
-rotation, useful for pin-into-bushing / fastener-into-hole cases
-where the part's orientation should be preserved. `_solve_position`
-solver branch + 5 host tests + writing-parts.md table update.
-
-All friction-log items are now closed except the three explicitly
-deferred (BOM rewrite, diff apply, STEP determinism) and three
-documented surprises (OCC writer bug, container rebuild loop,
-model-viewer CDN dependency).
-
-**Two surprises landed in v3 round-3** (commit `5b8b57c`):
-- Surprise B (container rebuild loop) — `compose.dev.yaml` bind-
-  mounts `src/mk` for instant iteration; opt-in.
-- Surprise A (OCC STEP XCAF multi-shape-layer bug) — text post-
-  processor in `step_xcaf.py::_rewrite_layer_assignments`.
-  Multi-shape and multi-tag both roundtrip cleanly now.
-- Surprise C (`<model-viewer>` CDN) is the only remaining
-  documented carry-over.
-
-**§4 round-3 evaluation** (post commit, same session). Built
-`mount_panel + button + button_panel_test` from scratch using the
-new tooling. Validated that round-1, round-2, round-3 fixes hold
-up in practice. 6 new items found (R3.1–R3.6), most smaller or
-design-deferral; only two are actionable quick wins:
-- **R3.2**: with_sub scaffold references `part_unit_box` without
-  documenting that the user needs to apply it first (~15min)
-- **R3.5**: `mk show` layer-state line includes 0-inst layers in
-  the "on" list (~5min)
-
-Other R3 items: R3.1 container startup (~hard, needs REPL), R3.3
-joint origins not param-expressed (design), R3.6 face-aware joint
-API (design), R3.4 not mk-cad-actionable.
-
-**Round-3 close-out** (same session): R3.5 and R3.2 closed.
-`mk show` layer-state line drops 0-inst layers. Both
-`mk asm new` templates gained PREREQ sections explaining which
-part manifest to apply first; `with_sub` switched to `part_block`
-(which actually has face_pos/face_neg joints).
-
-Friction log status: every actionable item closed across rounds
-1/2/3. Three explicitly deferred (BOM rewrite, diff apply, STEP
-determinism), three design-deferred (R3.1/R3.3/R3.6), one
-documented surprise carrying forward (model-viewer CDN).
-
-**State of the repo**: clean working tree (assuming this session's
-D.1+D.2 commit lands), `main` at the most recent commit. Docs at
+**State of the repo**: clean working tree, `main` at the latest
+commit (round-3 close-out + this update). Docs at
 https://glenn-edgar.github.io/build123_container/.
 
-**Quick verification commands**:
+**Quick verification commands** (smoke before starting):
+
 ```bash
-.venv/bin/pytest tests/                                        # 150 host tests, ~120 ms
-docker compose run --rm cad layer ls asm_nested                # 5 layers + counts
-docker compose run --rm cad mass asm_nested                    # default: include all
-docker compose run --rm cad mass asm_nested --respect-layers   # filter
-docker compose run --rm cad export asm_nested step             # color preserved
-docker compose run --rm cad export asm_nested dxf              # 4-view drawing
-docker compose run --rm cad show asm_nested                    # viewer filters hidden
-docker compose run --rm cad export asm_window_test urdf        # B.4 still works
-docker compose run --rm cad part export part_n20_worm_motor_16rpm  # B.3 still works
+.venv/bin/pytest tests/                                         # 169 pass + 1 skipped
+mk-dev layer ls asm_window_test                                 # baseline reader
+mk-dev measure asm_window_test --no-joints                      # 4/4 mates OK
+mk-dev export asm_coupler_demo urdf                             # B.4 path
+mk-dev export asm_window_test step                              # STEP + XCAF works
 ```
 
-See §10 URDF, §11 typed META, §12 layers, §13 STEP+XCAF caveat,
-§14 DXF drawings.
+See §10 URDF, §11 typed META, §12 layers, §13 STEP+XCAF post-
+processor, §14 DXF drawings. Full friction history (rounds 1/2/3
++ all close-outs) is in `docs/v2_evaluation.md`.
 
 ## 1. Definition of done — v1 ✅
 

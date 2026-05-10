@@ -9,30 +9,43 @@ Licensed under the [Mozilla Public License 2.0](LICENSE).
 
 ## Status
 
-**v2 plan complete** as of 2026-05-10 (a single-day v3 polish pass also
-landed). Phase coverage:
+**v2 plan complete + v3 polish closed** as of 2026-05-10. Phase coverage:
 
 - Phase A — v1.x gaps ✅
 - Phase B.1 revolute/prismatic mates ✅
 - Phase B.2.a build-time state injection ✅
-- Phase B.2.b live JS animation ⏳ deferred (viewer rewrite)
+- Phase B.2.b live JS animation ⏳ deferred (viewer rewrite, ~2–3d)
 - Phase B.3 typed META schema + `mk part export` JSON ✅
 - Phase B.4 URDF export ✅
 - Phase C.1+C.2 LAYER sentinel + tagging + CLI ✅
 - Phase C.3 per-command visibility filter ✅
-- Phase C.4 STEP XCAF roundtrip ⚠️ partial (color clean; layer OCC-limited)
+- Phase C.4 STEP XCAF roundtrip ✅ (multi-shape + multi-tag work via
+  post-processor that fixes OCC's writer bug)
 - Phase D.1+D.2 engineering drawings → DXF ✅
 - Phase D.3+D.4 PDF wrap ⏳ optional
 
-The N20 worm-motor window-controller rig at
-`project/manifests/window_test.py` is the working evaluation model;
-`asm_nested` exercises SUB scopes and multi-layer tags.
+**v3 polish + §4 evaluation cycle**: three rounds of evaluation
+(reader's path, author's path, dev-overlay shakedown) surfaced
+roughly 30 friction items; every actionable one landed. Remaining
+items are explicit defers (BOM rewrite, diff apply, STEP geom_hash
+determinism), design-deferred (REPL mode, param-aware joints,
+face-aware joint API), or non-blocking (model-viewer CDN). Full
+log in `docs/v2_evaluation.md`.
 
-**v3 friction list** is in `docs/v2_evaluation.md` — 23 items from
-exercising every command on the real model, with a "v3 status"
-header tracking which ones have landed. Forward-plan handoff is in
-`continue.md` §0a. Phase-by-phase change log is in `HISTORY.md` plus
-the commit log.
+Working models:
+- `project/manifests/window_test.py` → `asm_window_test` — N20
+  worm-motor window-controller rig (5 parts, 4 rigid mates, typed
+  META on the motor)
+- `project/manifests/coupler_demo.py` → `asm_coupler_demo` —
+  demonstrates `mate(align="position")` on a drag-link coupler
+- `project/manifests/button_panel_test.py` → `asm_button_panel_test` —
+  smaller pushbutton demo
+- `project/manifests/nested_asm.py` → `asm_nested` — SUB scopes
+  + multi-layer tags
+
+**Next direction**: pause the polish loop, use the tool on real
+engineering work. v4 priorities come from real-use friction, not
+synthetic evaluation. Forward-plan handoff is in `continue.md` §0a.
 
 ## Documentation
 
