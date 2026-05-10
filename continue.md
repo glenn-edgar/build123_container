@@ -8,19 +8,67 @@ verbatim in §2 below. Working history (what landed when) lives in
 
 ## 0. Where we are
 
-**v1 baselined** as of 2026-05-09. All six rev-2 phases verified end-to-end.
-Container builds clean as `mk-cad:local`; `mk init`, `mk apply`, `mk build`,
-`mk mass`, `mk bom`, `mk export <step|stl|brep>`, `mk show`, `mk measure`,
-`mk part new` all green.
+**v1 baselined** 2026-05-09. **Phase A of v2 complete; Phase B underway**
+as of 2026-05-10.
 
-**Real-world evaluation #1 active**: `project/manifests/window_test.py`
-(`asm_window_test`) is an N20 worm-motor + lever + L-bracket digital twin
-for window-controller software-in-the-loop testing. Renders end-to-end
-with per-part colors. Surfaced and fixed five bugs during construction —
-see `HISTORY.md` 2026-05-09 entry. Documentation site config in
-`mkdocs.yml`; rendered docs under `docs/`.
+| Phase | Status | What landed |
+|---|---|---|
+| v1 | ✅ | All six rev-2 phases. `asm_window_test` is the working evaluation rig. |
+| Phase A — v1.x gaps | ✅ (6/6) | SUB-mate paths; topo-sort solver; `META.mass_g_override`; multi-asm viewer (`outputs/<asm>/`); `mk part rm`; pytest harness (45 host tests). |
+| Phase B.1 — revolute/prismatic mates | ✅ | `mate(... mate_type="revolute", axis=, limits=, default=)`. Pure-Python Rodrigues math, host-tested. `tests/fixtures/hinge_demo.py` exercises it. |
+| Phase B.2.a — state-injection at build time | ✅ | `mk build` reads `outputs/<asm>/state.json` (or `--state <path>`). Override + clamping working. |
+| Phase B.2.b — live animation in viewer | ⏳ deferred | needs `<model-viewer>` → three.js swap; ~2–3 days. |
+| Phase B.3 — typed META schema | ⏳ not started | namespaced META keys (`electrical.*`, `mech.*`, `encoder.*`); `mk part export <kb> --json` for sim contract; ~2 days. |
+| Phase B.4 — URDF export | ⏳ not started | `mk export <asm> urdf` for ROS Gazebo / MuJoCo / Drake; needs revolute mates (have them) and mass override (have it); ~3 days. |
+| Phase C — layers | ⏳ | per `docs/v2_layers.md`; ~1 wk. |
+| Phase D — engineering drawings | ⏳ | HLR ortho-view → DXF; ~1.5 wk. |
 
-The next iteration on the evaluation drives v1.x and v2 priorities (§4).
+`docs/v2_plan.md` is the long-form v2 commitment. `HISTORY.md` is the
+phase-by-phase log.
+
+## 0a. Pick-up point for next session
+
+**Read this first.** Three reasonable next picks, in order of leverage:
+
+1. **Phase B.4 — URDF export** (~3 days). The most self-contained item left
+   in Phase B. Lets you drop `asm_window_test` into ROS Gazebo / MuJoCo /
+   Drake for full physics simulation of the controller-under-test.
+   Prerequisites already met: revolute mates (B.1) for joints; mass
+   override (Phase A item 3) for accurate inertia. Implementation: each
+   INST → `<link>` with mass + inertia from `mk mass`; revolute MATEs →
+   `<joint>` with `<axis>` + `<limit>`; rigid mates collapse into static
+   transforms; per-link mesh refs to STL files we already export.
+
+2. **Phase B.3 — typed META schema** (~2 days). Namespaced META keys
+   (`electrical.voltage_nominal_v`, `mech.gear_ratio`, `encoder.cpr`)
+   with backward-compat for existing flat keys. Adds `mk part export
+   <kb> --json` so the controller-under-test code consumes a structured
+   sim-contract document. More admin / refactor than feature.
+
+3. **Phase B.2.b — live JS animation** (~2–3 days). Replaces
+   `<model-viewer>` with direct three.js so the scene graph can be
+   updated from `state.json` polling without rebuilding. The B.2.a
+   format and override logic already in place; this is purely the
+   viewer-side rewrite.
+
+My pick: **B.4**. Highest leverage (your rig becomes simulator-ready)
+and cleanest scope (no frontend rewrite, no schema migration).
+
+If you'd rather start somewhere else entirely — Phase C (layers) or
+Phase D (drawings), both fully scoped in `docs/v2_plan.md` — also fine.
+Phase A and B.1+B.2.a are the foundation everything else can build on.
+
+**State of the repo**: clean working tree, `main` at `63fe148`,
+`gh-pages` at `015f481`. Docs live at
+https://glenn-edgar.github.io/build123_container/. mkdocs venv at
+`.venv/` (also has pytest installed).
+
+**Quick verification command** to make sure everything still works:
+```bash
+.venv/bin/pytest tests/                      # 45 host tests, ~50 ms
+docker compose run --rm cad build asm_window_test  # smoke
+docker compose run --rm cad show asm_window_test
+```
 
 ## 1. Definition of done — v1 ✅
 
