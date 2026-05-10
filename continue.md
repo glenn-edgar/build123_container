@@ -67,9 +67,20 @@ drive v3 priorities. If you want one more polish phase first, B.2.b
 is the highest-leverage of the open items.
 
 **Evaluation completed in this session** — see `docs/v2_evaluation.md`
-for the prioritized friction log (23 items + 3 surprises). Quick-win
-items are batched at the top; the biggest single ask is a real BOM
-(item #1, ~1d).
+for the prioritized friction log (23 items + 3 surprises). The doc's
+"v3 status" section tracks which items landed.
+
+**v3 first pass shipped** (same session): 10 items closed across 3
+commits — quick wins (CLI polish), output-layout unification + `mk
+state` CLI, and the mass/show summary cleanup. See the eval doc's
+v3-status table for the mapping.
+
+**Still open after v3 first pass**: BOM rewrite (deferred per user
+direction), diff apply (~1wk, deferred per v2 plan), URDF link-name
+verbosity, URDF inertia float-noise, `mk asm list`, mate-coincidence
+sanity, README staleness. Mostly small items; the next session is
+free to either knock them out incrementally or pick a different
+direction.
 
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at
