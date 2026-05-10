@@ -1,0 +1,2556 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Database-backed CAD prototype layered on build123d">
+      
+      
+      
+        <link rel="canonical" href="https://glenn-edgar.github.io/build123_container/v2_evaluation/">
+      
+      
+        <link rel="prev" href="../v2_layers/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>v2 — Evaluation log - mk-cad</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#v2-evaluation-friction-log" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="mk-cad" class="md-header__button md-logo" aria-label="mk-cad" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            mk-cad
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              v2 — Evaluation log
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/glenn-edgar/build123_container" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    glenn-edgar/build123_container
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="mk-cad" class="md-nav__button md-logo" aria-label="mk-cad" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    mk-cad
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/glenn-edgar/build123_container" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    glenn-edgar/build123_container
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../writing-parts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing parts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v2 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v2_layers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v2 — Layers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v2 — Evaluation log
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v2 — Evaluation log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v3-status-updated-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3 status (updated 2026-05-10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#round-2-evaluation-authors-path-exercise-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 evaluation — author's-path exercise (2026-05-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Round-2 evaluation — author&#39;s-path exercise (2026-05-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-friction-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New friction items
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New friction items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#r21-mk-part-new-scaffold-predates-the-typed-meta-schema-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.1 mk part new scaffold predates the typed META schema (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r22-no-mk-asm-new-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.2 No mk asm new (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r23-rigid-mate-always-rotates-child-to-align-z-dirs-1d-design-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.3 Rigid mate always rotates child to align z-dirs (~1d? design call)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r24-bbox-extents-show-world-frame-not-part-frame-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.4 Bbox extents show world-frame, not part-frame (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r25-joint-z_dir-semantics-not-documented-in-mk-part-show-output-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.5 Joint z_dir semantics not documented in mk part show output (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validated-round-1-fixes-positive-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validated round-1 fixes (positive findings)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-still-hurts-but-is-out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What still hurts but is out-of-scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-2-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-2-close-out-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 close-out (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-surprises-closed-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two surprises closed (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#round-3-evaluation-new-tooling-shakedown-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-3 evaluation — new-tooling shakedown (2026-05-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Round-3 evaluation — new-tooling shakedown (2026-05-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validated-round-2-and-round-3-fixes-that-held-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validated (round-2 and round-3 fixes that held up)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-friction-items_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New friction items
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New friction items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#r31-container-startup-is-8s-per-command-hard-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.1 Container startup is ~8s per command (~hard problem)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r32-mk-asm-new-template-with_sub-references-part_unit_box-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.2 mk asm new --template with_sub references part_unit_box (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r33-joint-origins-are-hard-coded-literals-not-param-expressed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.3 Joint origins are hard-coded literals, not param-expressed (~design)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r34-walrus-in-list-literal-silent-bug-python-language-not-mk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.4 Walrus-in-list-literal silent bug (Python language, not mk)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r35-mk-show-layer-state-line-includes-0-inst-layers-5min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.5 mk show layer-state line includes 0-inst layers (~5min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r36-build123d-face-center-coords-require-mental-math-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.6 Build123d face-center coords require mental math (~design)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-3-close-out-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-3 close-out (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mk-bom-output-is-too-thin-to-be-a-real-bom-1d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. mk bom output is too thin to be a real BOM (~1d)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-mk-part-show-doesnt-honor-the-typed-meta-namespaces-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. mk part show doesn't honor the typed META namespaces (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-mk-part-show-omits-joint-directions-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. mk part show omits joint directions (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-urdf-link-names-are-unnecessarily-verbose-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. URDF link names are unnecessarily verbose (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-urdf-inertia-tensors-have-numerical-noise-off-diagonals-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. URDF inertia tensors have numerical-noise off-diagonals (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-no-mk-asm-list-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. No mk asm list (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-apply-truncates-everything-invalidates-downstream-artifacts-1wk-if-pursued" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Apply-truncates-everything invalidates downstream artifacts (~1wk if pursued)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-stepstlbrep-output-goes-flat-urdfshow-go-in-a-subdir-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. STEP/STL/BREP output goes flat, URDF/show go in a subdir (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#medium-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Medium impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#9-occ-ezdxf-log-noise-pollutes-every-command-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. OCC + ezdxf log noise pollutes every command (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-mk-mass-mixes-per-inst-details-with-the-summary-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. mk mass mixes per-inst details with the summary (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-mk-measure-joint-name-column-alignment-is-off-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. mk measure joint-name column alignment is off (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-mk-measure-doesnt-sanity-check-mates-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. mk measure doesn't sanity-check mates (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-mk-show-doesnt-volunteer-layer-state-in-stdout-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. mk show doesn't volunteer layer state in stdout (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-mk-part-show-lacks-json-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. mk part show lacks --json (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-mk-part-export-json-emits-instead-of-literal-5min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. mk part export JSON emits Φ instead of literal Φ (~5min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-no-mk-state-cli-for-joint-pose-setting-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. No mk state CLI for joint pose-setting (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#low-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Low impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#17-mk-apply-is-verbose-with-print-from-vendored-kb-infra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. mk apply is verbose with print() from vendored KB infra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#18-no-inst-rows-in-conflates-no-such-assembly-with-applied-but-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. "no INST rows in " conflates "no such assembly" with "applied but empty"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#19-step-geometry-hash-is-non-deterministic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. STEP geometry hash is non-deterministic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#20-readme-status-is-stale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. README status is stale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#21-ezdxf-info-ezdxf-did-not-write-header-var-interfereobjvs-on-dxf-write" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. ezdxf "INFO ezdxf: did not write header var $INTERFEREOBJVS" on DXF write
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-mate-names-still-start-with-a_b_c_d_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22. mate names still start with a_/b_/c_/d_
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-mk-layer-ls-has-trailing-whitespace-on-every-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23. mk layer ls has trailing whitespace on every row
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surprises-worth-recording-no-fix-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Surprises (worth recording, no fix yet)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Surprises (worth recording, no fix yet)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-occs-step-xcaf-writer-drops-multi-shape-per-layer-info" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. OCC's STEP XCAF writer drops multi-shape-per-layer info
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-container-build-is-1-minute-per-code-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Container build is ~1 minute per code change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-the-viewers-model-viewer-cdn-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. The viewer's &lt;model-viewer&gt; CDN dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-was-not-painful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What was NOT painful
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#priorities-for-v3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Priorities for v3
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v3-status-updated-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3 status (updated 2026-05-10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#round-2-evaluation-authors-path-exercise-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 evaluation — author's-path exercise (2026-05-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Round-2 evaluation — author&#39;s-path exercise (2026-05-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-friction-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New friction items
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New friction items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#r21-mk-part-new-scaffold-predates-the-typed-meta-schema-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.1 mk part new scaffold predates the typed META schema (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r22-no-mk-asm-new-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.2 No mk asm new (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r23-rigid-mate-always-rotates-child-to-align-z-dirs-1d-design-call" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.3 Rigid mate always rotates child to align z-dirs (~1d? design call)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r24-bbox-extents-show-world-frame-not-part-frame-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.4 Bbox extents show world-frame, not part-frame (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r25-joint-z_dir-semantics-not-documented-in-mk-part-show-output-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R2.5 Joint z_dir semantics not documented in mk part show output (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validated-round-1-fixes-positive-findings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validated round-1 fixes (positive findings)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-still-hurts-but-is-out-of-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What still hurts but is out-of-scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-2-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 priorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-2-close-out-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-2 close-out (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-surprises-closed-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two surprises closed (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#round-3-evaluation-new-tooling-shakedown-2026-05-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-3 evaluation — new-tooling shakedown (2026-05-10)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Round-3 evaluation — new-tooling shakedown (2026-05-10)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#validated-round-2-and-round-3-fixes-that-held-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validated (round-2 and round-3 fixes that held up)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-friction-items_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New friction items
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="New friction items">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#r31-container-startup-is-8s-per-command-hard-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.1 Container startup is ~8s per command (~hard problem)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r32-mk-asm-new-template-with_sub-references-part_unit_box-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.2 mk asm new --template with_sub references part_unit_box (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r33-joint-origins-are-hard-coded-literals-not-param-expressed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.3 Joint origins are hard-coded literals, not param-expressed (~design)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r34-walrus-in-list-literal-silent-bug-python-language-not-mk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.4 Walrus-in-list-literal silent bug (Python language, not mk)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r35-mk-show-layer-state-line-includes-0-inst-layers-5min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.5 mk show layer-state line includes 0-inst layers (~5min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#r36-build123d-face-center-coords-require-mental-math-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        R3.6 Build123d face-center coords require mental math (~design)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#round-3-close-out-same-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Round-3 close-out (same session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-mk-bom-output-is-too-thin-to-be-a-real-bom-1d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. mk bom output is too thin to be a real BOM (~1d)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-mk-part-show-doesnt-honor-the-typed-meta-namespaces-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. mk part show doesn't honor the typed META namespaces (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-mk-part-show-omits-joint-directions-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. mk part show omits joint directions (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-urdf-link-names-are-unnecessarily-verbose-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. URDF link names are unnecessarily verbose (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-urdf-inertia-tensors-have-numerical-noise-off-diagonals-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. URDF inertia tensors have numerical-noise off-diagonals (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-no-mk-asm-list-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. No mk asm list (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-apply-truncates-everything-invalidates-downstream-artifacts-1wk-if-pursued" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Apply-truncates-everything invalidates downstream artifacts (~1wk if pursued)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-stepstlbrep-output-goes-flat-urdfshow-go-in-a-subdir-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. STEP/STL/BREP output goes flat, URDF/show go in a subdir (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#medium-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Medium impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#9-occ-ezdxf-log-noise-pollutes-every-command-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. OCC + ezdxf log noise pollutes every command (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#10-mk-mass-mixes-per-inst-details-with-the-summary-30min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. mk mass mixes per-inst details with the summary (~30min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#11-mk-measure-joint-name-column-alignment-is-off-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. mk measure joint-name column alignment is off (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-mk-measure-doesnt-sanity-check-mates-1h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. mk measure doesn't sanity-check mates (~1h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-mk-show-doesnt-volunteer-layer-state-in-stdout-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. mk show doesn't volunteer layer state in stdout (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-mk-part-show-lacks-json-15min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. mk part show lacks --json (~15min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-mk-part-export-json-emits-instead-of-literal-5min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. mk part export JSON emits Φ instead of literal Φ (~5min)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-no-mk-state-cli-for-joint-pose-setting-2h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. No mk state CLI for joint pose-setting (~2h)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#low-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low impact
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Low impact">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#17-mk-apply-is-verbose-with-print-from-vendored-kb-infra" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. mk apply is verbose with print() from vendored KB infra
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#18-no-inst-rows-in-conflates-no-such-assembly-with-applied-but-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. "no INST rows in " conflates "no such assembly" with "applied but empty"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#19-step-geometry-hash-is-non-deterministic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. STEP geometry hash is non-deterministic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#20-readme-status-is-stale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. README status is stale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#21-ezdxf-info-ezdxf-did-not-write-header-var-interfereobjvs-on-dxf-write" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. ezdxf "INFO ezdxf: did not write header var $INTERFEREOBJVS" on DXF write
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-mate-names-still-start-with-a_b_c_d_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22. mate names still start with a_/b_/c_/d_
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-mk-layer-ls-has-trailing-whitespace-on-every-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23. mk layer ls has trailing whitespace on every row
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#surprises-worth-recording-no-fix-yet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Surprises (worth recording, no fix yet)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Surprises (worth recording, no fix yet)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-occs-step-xcaf-writer-drops-multi-shape-per-layer-info" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. OCC's STEP XCAF writer drops multi-shape-per-layer info
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-container-build-is-1-minute-per-code-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Container build is ~1 minute per code change
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-the-viewers-model-viewer-cdn-dependency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. The viewer's &lt;model-viewer&gt; CDN dependency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-was-not-painful" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What was NOT painful
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#priorities-for-v3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Priorities for v3
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/glenn-edgar/build123_container/edit/main/docs/v2_evaluation.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="v2-evaluation-friction-log">v2 evaluation — friction log<a class="headerlink" href="#v2-evaluation-friction-log" title="Permanent link">&para;</a></h1>
+<p><strong>Date</strong>: 2026-05-10. <strong>Model exercised</strong>: <code>asm_window_test</code> (the N20
+worm-motor window-controller rig — 5 parts, 4 rigid mates, typed META
+on the motor) plus <code>asm_nested</code> (SUB-scope multi-layer test).</p>
+<h2 id="v3-status-updated-2026-05-10">v3 status (updated 2026-05-10)<a class="headerlink" href="#v3-status-updated-2026-05-10" title="Permanent link">&para;</a></h2>
+<p>Four v3 commits landed in the same session as the evaluation:</p>
+<table>
+<thead>
+<tr>
+<th>Commit</th>
+<th>Items addressed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>42c880c</code> v3 quick wins</td>
+<td>#2 typed-META in show, #3 joint dirs in show, #11 measure column alignment, #15 ensure_ascii, #18 no-such-asm vs empty, #21 ezdxf log noise, #23 layer ls trailing whitespace</td>
+</tr>
+<tr>
+<td><code>264b2b2</code> layout + state CLI</td>
+<td>#8 unified output layout, #16 <code>mk state ls/set/reset</code></td>
+</tr>
+<tr>
+<td><code>1cd93bf</code> mass + show cleanup</td>
+<td>#10 mass summary-first, #13 show always announces layer state</td>
+</tr>
+<tr>
+<td><code>e947293</code> round 2</td>
+<td>#4 URDF short link names, #5 URDF float-noise threshold, #6 <code>mk asm list</code>, #12 measure mate-coincidence, #14 <code>mk part show --json</code>, #17 (verified clean — no leak), #20 README refresh, plus stale-mesh cleanup on URDF re-export and writing-parts.md API table refresh (covers #22)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Closed since the snapshot</strong>: 16 of 23 items.</p>
+<p><strong>Still open</strong> after this v3 pass:
+- <strong>#1 BOM rewrite</strong> — explicitly deferred at user direction.
+- <strong>#7 Diff apply</strong> — explicitly deferred (~1wk, invasive).
+- <strong>#19 STEP geom_hash non-determinism</strong> — v3-deferred per continue.md §9.
+- <strong>Surprises A, B, C</strong> — OCC STEP XCAF multi-layer bug (documented in
+  step_xcaf.py); container build time (would benefit from a
+  compose.dev.yaml with bind-mounted src); <code>&lt;model-viewer&gt;</code> CDN
+  dependency. None are blocking; all are documented.</p>
+<p>That's the whole list. The prototype is in a clean state for the
+"build real parts, drive v3+" cycle — pause the polish loop, exercise
+the tool on actual work, and let the next round of friction surface.</p>
+<hr />
+<h2 id="round-2-evaluation-authors-path-exercise-2026-05-10">Round-2 evaluation — author's-path exercise (2026-05-10)<a class="headerlink" href="#round-2-evaluation-authors-path-exercise-2026-05-10" title="Permanent link">&para;</a></h2>
+<p>The round-1 evaluation exercised the reader's path: every read-side
+command on existing models. Round 2 exercises the <strong>writer's path</strong>:
+<code>mk part new</code>, edit the manifest, apply, mate into an assembly.</p>
+<p>Worked example: scaffolded a new <code>part_coupler</code> (drag-link bar with
+two pivot holes), edited the manifest with typed META, then wrote a
+new <code>asm_coupler_demo</code> that mates it onto the lever tip of the
+window-test rig. Five-inst assembly with two layer groups
+(<code>fixed_structure</code>, <code>mechanism</code>). Full author's loop took ~5 minutes.</p>
+<h3 id="new-friction-items">New friction items<a class="headerlink" href="#new-friction-items" title="Permanent link">&para;</a></h3>
+<h4 id="r21-mk-part-new-scaffold-predates-the-typed-meta-schema-30min">R2.1 <code>mk part new</code> scaffold predates the typed META schema (~30min)<a class="headerlink" href="#r21-mk-part-new-scaffold-predates-the-typed-meta-schema-30min" title="Permanent link">&para;</a></h4>
+<p>The generated manifest uses flat <code>p.meta("density", 7.85)</code> /
+<code>p.meta("material", "steel")</code>. A user following the template won't
+discover the dotted-namespace pattern (<code>electrical.voltage_nominal_v</code>,
+<code>mech.max_load_n</code>, ...) unless they read <code>window_test.py</code>. The
+scaffold should include a commented-out example:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Typed sim-contract fields (optional; namespaced with dots):</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># p.meta(&quot;electrical.voltage_nominal_v&quot;, 12.0)</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># p.meta(&quot;mech.max_load_n&quot;, 25.0)</span>
+</span></code></pre></div>
+<p>Also worth surfacing: <code>mass_g_override</code> for hollow / composite parts
+where volume × density over-counts.</p>
+<h4 id="r22-no-mk-asm-new-1h">R2.2 No <code>mk asm new</code> (~1h)<a class="headerlink" href="#r22-no-mk-asm-new-1h" title="Permanent link">&para;</a></h4>
+<p>Mirrors the v2-evaluation #6 finding (<code>mk asm list</code>) but for the
+creator-side. To write <code>asm_coupler_demo.py</code> I had to copy from
+existing fixtures. A scaffold:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mk<span class="w"> </span>asm<span class="w"> </span>new<span class="w"> </span>coupler_demo<span class="w"> </span>--template<span class="w"> </span>flat
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># writes a starter manifest with:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1">#   one inst, no mates, comments showing inst()/sub()/mate() syntax</span>
+</span></code></pre></div>
+<p>Round 1 closed #6 (list) but missed the symmetric <code>new</code> gap.</p>
+<h4 id="r23-rigid-mate-always-rotates-child-to-align-z-dirs-1d-design-call">R2.3 Rigid mate always rotates child to align z-dirs (~1d? design call)<a class="headerlink" href="#r23-rigid-mate-always-rotates-child-to-align-z-dirs-1d-design-call" title="Permanent link">&para;</a></h4>
+<p>Most user-visible surprise of round 2. Writing the coupler-to-lever
+mate, the lever.tip joint has <code>z_dir=[1,0,0]</code> (out in +X); the
+coupler.motor_end has <code>z_dir=[0,1,0]</code> (up). Rigid mate aligns
+joint_a's z to -joint_b's z, so the coupler rotates 90° about Z
+relative to its part-local frame.</p>
+<p>The mate solver does what the spec says. But users writing a
+fastener-into-hole or pin-into-bushing mate often <strong>just want
+translation</strong> — keep the part's existing orientation, just put
+joint A at joint B. Today's API doesn't express that.</p>
+<p>Suggested fix: an optional flag on <code>mate()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">a</span><span class="o">.</span><span class="n">mate</span><span class="p">(</span><span class="s2">&quot;c&quot;</span><span class="p">,</span> <span class="n">joint_a</span><span class="o">=...</span><span class="p">,</span> <span class="n">joint_b</span><span class="o">=...</span><span class="p">,</span> <span class="n">mate_type</span><span class="o">=</span><span class="s2">&quot;rigid&quot;</span><span class="p">,</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>       <span class="n">align</span><span class="o">=</span><span class="s2">&quot;z&quot;</span>            <span class="c1"># default — align z-dirs as today</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>       <span class="c1"># align=&quot;position&quot;   # only translate joint_a to joint_b origin</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       <span class="p">)</span>
+</span></code></pre></div>
+<p>Real engineering use cases want both. Worth designing properly
+rather than tacking a flag on.</p>
+<h4 id="r24-bbox-extents-show-world-frame-not-part-frame-1h">R2.4 Bbox extents show world-frame, not part-frame (~1h)<a class="headerlink" href="#r24-bbox-extents-show-world-frame-not-part-frame-1h" title="Permanent link">&para;</a></h4>
+<p><code>mk measure</code> reports <code>coupler extent=8.00×40.00×2.00</code> after the
+coupler is rotated 90° about Z. The author declared <code>length=40</code>
+along X in part-local — but world-frame Y is now 40. Both numbers
+are legitimate but the world-frame extent is what <code>measure</code> shows
+without labeling. Adding a per-inst <code>extent (part-local)</code> line, or
+labeling the existing one as "world-frame", would clarify.</p>
+<h4 id="r25-joint-z_dir-semantics-not-documented-in-mk-part-show-output-15min">R2.5 Joint <code>z_dir</code> semantics not documented in <code>mk part show</code> output (~15min)<a class="headerlink" href="#r25-joint-z_dir-semantics-not-documented-in-mk-part-show-output-15min" title="Permanent link">&para;</a></h4>
+<p><code>mk part show</code> lists <code>z_dir=[0, 1, 0]</code> per joint after this round's
+fix. But what does z_dir <em>mean</em>? It's the joint frame's z-axis (the
+direction the rigid mate flips against). New users won't know that
+from looking at the output. A one-line legend at the top of the
+JOINT section ("<code>z_dir</code> = joint normal; rigid mates align A's z to
+−B's z") would explain it.</p>
+<h3 id="validated-round-1-fixes-positive-findings">Validated round-1 fixes (positive findings)<a class="headerlink" href="#validated-round-1-fixes-positive-findings" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>mk part show</code> grouped sections + nested META look great on the
+  new part. <code>mech.*</code> namespace shows cleanly indented.</li>
+<li><code>mk part new</code> → edit → apply → build → export sequence is fast
+  (~5 min for a non-trivial part) thanks to the polished error
+  messages.</li>
+<li><code>mk measure</code> mate-coincidence sanity caught 4/4 mates as OK on
+  the new assembly — good baseline for spotting future regressions.</li>
+<li>URDF short link names land for the new flat assembly:
+  <code>bracket</code>/<code>coupler</code>/<code>lever</code>/<code>motor</code>/<code>sheet</code> instead of the v2-era
+  <code>asm_coupler_demo__INST__bracket</code> form.</li>
+<li>Layer toggle workflow on the new assembly (3 layers, with
+  per-mate visibility) is intuitive. State preservation
+  across re-apply works invisibly.</li>
+<li><code>mk part export</code> JSON correctly nests the new <code>mech.*</code> keys
+  under a <code>mech</code> namespace.</li>
+<li><code>mk state ls</code> on a rigid-only assembly correctly identifies
+  it as "no revolute or prismatic mates" — no spurious warnings.</li>
+</ul>
+<h3 id="what-still-hurts-but-is-out-of-scope">What still hurts but is out-of-scope<a class="headerlink" href="#what-still-hurts-but-is-out-of-scope" title="Permanent link">&para;</a></h3>
+<ul>
+<li>DXF still emits LWPOLYLINEs for every edge (the 396 KB asm_coupler
+  _demo.dxf bears this out — most of it is hidden-edge facet
+  geometry from the motor body). Real LINE/ARC entities would
+  shrink this significantly. Carried forward from the v3 round-1
+  open list (DXF polish, ~1d).</li>
+<li>The OCC STEP XCAF multi-shape-layer bug still drops layer info
+  during STEP export. Same documented limitation.</li>
+</ul>
+<h3 id="round-2-priorities">Round-2 priorities<a class="headerlink" href="#round-2-priorities" title="Permanent link">&para;</a></h3>
+<p>If a v3 round 3 cycle starts:
+1. <strong>R2.3 align option on rigid mates</strong> — biggest user-visible gap;
+   needs design discussion before coding.
+2. <strong>R2.1 + R2.2 scaffold updates</strong> — quick (~1h combined). Adds
+   <code>mk asm new</code> and updates <code>mk part new</code> template to mention
+   typed META.
+3. <strong>R2.4 part-frame bbox in measure</strong> — minor; can wait.
+4. <strong>R2.5 z_dir legend</strong> — trivial doc tweak.</p>
+<h3 id="round-2-close-out-same-session">Round-2 close-out (same session)<a class="headerlink" href="#round-2-close-out-same-session" title="Permanent link">&para;</a></h3>
+<p>Four of the five round-2 items closed in one follow-up commit:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R2.1</strong></td>
+<td><code>mk part new</code> scaffold updated with commented examples for typed META (<code>electrical.voltage_nominal_v</code>, <code>mech.max_load_n</code>), <code>mass_g_override</code>, color/vendor/part_number, plus an <code>align</code> semantics note on joints</td>
+</tr>
+<tr>
+<td><strong>R2.2</strong></td>
+<td>New <code>mk asm new &lt;name&gt; [--template flat\|with_sub]</code> subcommand. <code>flat</code> writes a 1-inst starter; <code>with_sub</code> writes a 2-level SUB-scope template demonstrating the nested mate-path form and layer cascading</td>
+</tr>
+<tr>
+<td><strong>R2.3</strong></td>
+<td><code>mate(..., align="z"\|"position")</code> — <code>align="z"</code> (default) preserves the original z-opposing rigid mate; <code>align="position"</code> translates only and preserves part orientation. New <code>_solve_position</code> solver branch (rel_rot=identity, rel_trans=jb_origin-ja_origin). Validated end-to-end on <code>asm_coupler_demo</code>: switching the coupler→lever mate to position-mode flipped the coupler's bbox from <code>8×40×2</code> back to <code>40×8×2</code>, matching the part-local declaration. Existing assemblies unaffected (align="z" is the silent default).</td>
+</tr>
+<tr>
+<td><strong>R2.5</strong></td>
+<td><code>mk part show</code> JOINT section gained a one-line legend explaining <code>z_dir</code> semantics + <code>align="z"</code> mate behaviour</td>
+</tr>
+</tbody>
+</table>
+<p>R2.4 (part-frame bbox in measure) skipped per the prior assessment —
+the existing measure output is already labelled "world coords (mm)";
+no code change merited.</p>
+<p>After this close-out, the friction log is empty of unaddressed
+items. The three deferred buckets (BOM rewrite, diff apply, STEP
+determinism) and three documented surprises remain by design.</p>
+<h3 id="two-surprises-closed-same-session">Two surprises closed (same session)<a class="headerlink" href="#two-surprises-closed-same-session" title="Permanent link">&para;</a></h3>
+<p>Surprise A (OCC STEP XCAF multi-shape-layer bug) and surprise B
+(container rebuild loop) both landed:</p>
+<p><strong>Surprise B — <code>compose.dev.yaml</code></strong> (~30 min). Overlay that bind-
+mounts <code>./src/mk:/usr/local/lib/python3.12/site-packages/mk:ro</code>
+over the pip-installed package. Code changes are picked up
+without rebuilding the image. Used as:</p>
+<div class="language-text highlight"><pre><span></span><code>docker compose -f compose.yaml -f compose.dev.yaml run --rm cad ...
+</code></pre></div>
+<p>or via the <code>alias mk-dev='...'</code> shortcut documented in the README.
+Production-style <code>docker compose run --rm cad ...</code> still works
+identically — the overlay is opt-in.</p>
+<p><strong>Surprise A — STEP XCAF post-processor</strong> (~2 h). OCC 7.8.1.1's
+<code>STEPCAFControl_Writer</code> emits at most one shape per
+<code>PRESENTATION_LAYER_ASSIGNMENT</code> entity and drops multi-tagged
+shapes. The fix is a text-level post-processor in
+<code>mk/step_xcaf.py::_rewrite_layer_assignments</code>:</p>
+<ol>
+<li>After <code>Write()</code>, read the STEP file as text.</li>
+<li>Find every <code>MANIFOLD_SOLID_BREP</code> entity ID in file order
+   (verified to match the XCAF add-order, which matches
+   <code>inst_rows</code>'s iteration order).</li>
+<li>Strip OCC's broken <code>PRESENTATION_LAYER_ASSIGNMENT</code> lines.</li>
+<li>Emit fresh ones from the Python-side <code>inst_layer_lists</code> map —
+   sorted by layer name, each entry's tuple contains every
+   shape's entity ID. Inserted just before the <strong>DATA</strong> section's
+   <code>ENDSEC</code> (not the header's — that bug bit during dev).</li>
+</ol>
+<p>Bails out with a stderr warning if the entity count doesn't
+match the XCAF expectation (defensive against future OCC version
+changes that might reorder entities).</p>
+<p>Verified roundtrips:
+- <code>asm_window_test</code> (5 shapes all DEFAULT): <code>{DEFAULT: 5}</code> ✓
+- <code>asm_nested</code> (4 shapes, multi-tag inner_a2):
+  <code>{electronics: 2, emi: 1, frame: 1, mechanical: 1}</code> ✓ —
+  multi-tag preserved.</p>
+<p>The <code>read_step_layer_assignments</code> helper also had to flip from
+per-shape <code>GetLayers</code> (which has its own OCP quirk on multi-shape
+PLAs) to per-layer <code>GetShapesOfLayer_s</code> to surface the real
+mapping cleanly. That made the OCP-side test agree with the
+text-parse of the file.</p>
+<p>After this, only the <strong><code>&lt;model-viewer&gt;</code> CDN dependency</strong> (surprise C)
+remains as a non-blocking carry-over. v3 polish is genuinely done.</p>
+<hr />
+<h2 id="round-3-evaluation-new-tooling-shakedown-2026-05-10">Round-3 evaluation — new-tooling shakedown (2026-05-10)<a class="headerlink" href="#round-3-evaluation-new-tooling-shakedown-2026-05-10" title="Permanent link">&para;</a></h2>
+<p>Scope: validate the v3 round-1, round-2, and round-3 fixes from a
+fresh user's perspective. Built <code>part_mount_panel</code> + <code>part_button</code> +
+<code>asm_button_panel_test</code> from scratch using the compose.dev.yaml
+overlay throughout.</p>
+<h3 id="validated-round-2-and-round-3-fixes-that-held-up">Validated (round-2 and round-3 fixes that held up)<a class="headerlink" href="#validated-round-2-and-round-3-fixes-that-held-up" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>mk part new</code> scaffold's commented typed-META examples are
+  directly useful — copy-paste-edit, no doc lookup needed.</li>
+<li><code>mk asm new --template with_sub</code> scaffolds correctly; the
+  default mate template line shows both <code>align="z"</code> and the
+  newer <code>align="position"</code> choice inline.</li>
+<li><code>mk part show</code> grouped sections render the new typed META
+  cleanly (<code>electrical.contact_rating_a</code>, <code>mech.actuation_force_n</code>).</li>
+<li>z_dir legend in <code>mk part show</code> JOINT section is concise and
+  immediately answers "what does z_dir mean".</li>
+<li>STEP roundtrip via the post-processor:
+  <code>{'electrical': 1, 'frame': 1}</code> for the new 2-inst assembly —
+  multi-layer write-and-read works end-to-end.</li>
+<li><code>mk measure</code> mate-coincidence sanity caught 1/1 OK after build.</li>
+<li><code>mk show</code> layer-state line announces "on layers [...] (all visible)".</li>
+<li><code>compose.dev.yaml</code> overlay: edits to <code>src/mk/*.py</code> are picked
+  up without <code>docker compose build</code>. No rebuild needed for any
+  iteration during this exercise.</li>
+</ul>
+<h3 id="new-friction-items_1">New friction items<a class="headerlink" href="#new-friction-items_1" title="Permanent link">&para;</a></h3>
+<h4 id="r31-container-startup-is-8s-per-command-hard-problem">R3.1 Container startup is ~8s per command (~hard problem)<a class="headerlink" href="#r31-container-startup-is-8s-per-command-hard-problem" title="Permanent link">&para;</a></h4>
+<p>Even with the dev overlay, every <code>mk ...</code> invocation takes ~8s to
+spin up the container (verified across <code>mk part new</code>, <code>mk apply</code>,
+<code>mk build</code>, <code>mk show</code>). This is qemu-amd64 emulation overhead on
+aarch64 hosts; out of scope for compose.yaml fixes. A persistent
+shell or REPL-mode would amortize the startup. Carry-forward, not
+a regression. <strong>Effort</strong>: substantial — needs an interactive
+container or <code>mk repl</code> subcommand.</p>
+<h4 id="r32-mk-asm-new-template-with_sub-references-part_unit_box-15min">R3.2 <code>mk asm new --template with_sub</code> references <code>part_unit_box</code> (~15min)<a class="headerlink" href="#r32-mk-asm-new-template-with_sub-references-part_unit_box-15min" title="Permanent link">&para;</a></h4>
+<p>The with_sub scaffold uses <code>ref_kb="part_unit_box"</code> for its
+<code>piece_a</code>/<code>piece_b</code> insts, expecting <code>face_pos</code>/<code>face_neg</code> joints.
+A new user running the scaffold's "next: mk apply ... &amp;&amp; mk build"
+hint will get <code>no such part: part_unit_box</code> if <code>box_unit.py</code> hasn't
+been applied. Either:
+- Bundle <code>part_unit_box</code> as part of <code>mk init</code> (auto-apply a tiny
+  starter library), or
+- Use a placeholder <code>ref_kb="TODO_apply_a_part_first"</code> and have
+  the scaffold print a warning, or
+- Add <code># Run</code>mk apply box_unit.py<code>first to get part_unit_box</code>
+  as a top-line comment in the scaffold.</p>
+<p>Lightweight, but the friction is real for first-time users.</p>
+<h4 id="r33-joint-origins-are-hard-coded-literals-not-param-expressed-design">R3.3 Joint origins are hard-coded literals, not param-expressed (~design)<a class="headerlink" href="#r33-joint-origins-are-hard-coded-literals-not-param-expressed-design" title="Permanent link">&para;</a></h4>
+<p>In <code>part_button</code>, the <code>seat</code> joint is at <code>origin=[0, 0, 4]</code>. The 4
+is <code>shaft_l / 2</code> for <code>shaft_l=8</code>. If the user changes <code>shaft_l</code> to
+10, the joint stays at z=4 but should track to z=5. This is a real
+API limitation: <strong>joint origins can't be lambdas-of-params</strong>
+because the manifest is declarative and joints are eagerly written.</p>
+<p>Workarounds:
+- Compute joint coords at scaffold time, document as "edit if you
+  change params" (current state).
+- Allow <code>p.joint("seat", origin=lambda p: [0, 0, p["shaft_l"] / 2])</code>
+  — but that requires deferring joint storage until after the
+  builder has params resolved, which crosses our IaC apply-time vs
+  build-time semantics.
+- Allow <code>origin="@(0, 0, shaft_l/2)"</code> — a string mini-DSL evaluated
+  per-inst with the inst's resolved params. More complex but stays
+  declarative.</p>
+<p>v3-deferred. Real but not urgent.</p>
+<h4 id="r34-walrus-in-list-literal-silent-bug-python-language-not-mk">R3.4 Walrus-in-list-literal silent bug (Python language, not mk)<a class="headerlink" href="#r34-walrus-in-list-literal-silent-bug-python-language-not-mk" title="Permanent link">&para;</a></h4>
+<p>Wrote <code>origin=[0, 0, p_value := 4]</code> and the parser accepted it.
+The walrus expression evaluates to 4, so it happened to be
+correct in this case — but it's a code-smell that nothing in our
+tooling catches. Lint config wouldn't help here. Note only; no
+mk-cad action.</p>
+<h4 id="r35-mk-show-layer-state-line-includes-0-inst-layers-5min">R3.5 <code>mk show</code> layer-state line includes 0-inst layers (~5min)<a class="headerlink" href="#r35-mk-show-layer-state-line-includes-0-inst-layers-5min" title="Permanent link">&para;</a></h4>
+<p>Sample output for the round-3 asm where panel is on <code>frame</code> and
+button is on <code>electrical</code>:</p>
+<div class="language-text highlight"><pre><span></span><code>layer state: 2 inst(s) on layers [&#39;DEFAULT&#39;, &#39;electrical&#39;, &#39;frame&#39;]
+  (all visible)
+</code></pre></div>
+<p><code>DEFAULT</code> has zero insts attached — it shouldn't appear in the
+"on" list. The filter <code>visible_names</code> should also require
+<code>counts.get(name, 0) &gt; 0</code>.</p>
+<h4 id="r36-build123d-face-center-coords-require-mental-math-design">R3.6 Build123d face-center coords require mental math (~design)<a class="headerlink" href="#r36-build123d-face-center-coords-require-mental-math-design" title="Permanent link">&para;</a></h4>
+<p>To define a joint at "the bottom face of the cap", I had to
+mentally compute <code>cap_position_z - cap_thickness / 2</code>. build123d
+has <code>Face.center()</code> etc. for already-built shapes; for the
+manifest-time joint declarations, there's no equivalent. Could
+imagine an API like <code>p.joint_at_face(...)</code> that queries the
+built shape's faces. Out of scope for current iteration.</p>
+<h3 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h3>
+<p>Round 3 surfaced 6 items but most are smaller or design-call:
+- R3.5 is a real quick win (~5min).
+- R3.2 is a scaffold polish (~15min).
+- R3.1 (container startup) and R3.3 (joint param expressions)
+  and R3.6 (face-aware joints) are design-deferral territory.
+- R3.4 is not actionable in mk-cad.</p>
+<p>The major round-3-validated win: the <strong>dev iteration loop is no
+longer rebuild-bound</strong>. Edits to <code>src/mk/</code> reflected immediately,
+making each fix-and-test cycle ~30s shorter than before.</p>
+<p>After this round, the <em>small actionable items</em> are R3.5 (mk show
+layer filter) and R3.2 (scaffold ref_kb placeholder). Worth
+closing before the next eval cycle.</p>
+<h3 id="round-3-close-out-same-session">Round-3 close-out (same session)<a class="headerlink" href="#round-3-close-out-same-session" title="Permanent link">&para;</a></h3>
+<p>Both actionable items landed:</p>
+<p><strong>R3.5</strong> — <code>mk show</code> filters 0-inst layers from the layer-state line.
+Before: <code>layer state: 2 inst(s) on layers ['DEFAULT', 'electrical', 'frame']</code>.
+After: <code>layer state: 2 inst(s) on layers ['electrical', 'frame']</code> (DEFAULT
+gone, since no inst is attached to it). Logic now requires
+<code>counts.get(name, 0) &gt; 0</code> in addition to visibility.</p>
+<p><strong>R3.2</strong> — both <code>mk asm new</code> templates gain a clear PREREQ section in
+the docstring. <code>with_sub</code> now uses <code>part_block</code> as ref_kb (which
+actually has the face_pos/face_neg joints the template references —
+the previous <code>part_unit_box</code> only had <code>s</code> param + density, so the
+template would fail to mate). Top-of-file docstring lists the
+required <code>mk apply nested_asm.py</code> step. <code>flat</code> template gains the
+same treatment for <code>box_unit.py</code>.</p>
+<p>Remaining round-3 items are design-deferred (R3.1 container startup,
+R3.3 param-aware joints, R3.6 face-aware joint API) or not
+mk-cad-actionable (R3.4 walrus-in-list). Evaluation cycle is
+genuinely complete.</p>
+<p>The original entries below are preserved verbatim as a snapshot of what
+was found at evaluation time.</p>
+<hr />
+<p>Every <code>mk</code> command was run end-to-end against these two assemblies on
+a freshly-rebuilt container. The list below is what hurt, ranked by
+impact. Each entry has a rough fix-size estimate; <strong>none of these
+were fixed during evaluation</strong> per the §4 protocol (write it down,
+don't patch as you go).</p>
+<p>The goal of this list is to feed v3 prioritization. Some entries are
+real bugs, some are ergonomics, some are missing capabilities.</p>
+<hr />
+<h2 id="high-impact">High impact<a class="headerlink" href="#high-impact" title="Permanent link">&para;</a></h2>
+<h3 id="1-mk-bom-output-is-too-thin-to-be-a-real-bom-1d">1. <code>mk bom</code> output is too thin to be a real BOM (~1d)<a class="headerlink" href="#1-mk-bom-output-is-too-thin-to-be-a-real-bom-1d" title="Permanent link">&para;</a></h3>
+<p>Current output is just <code>part_kb</code> + <code>qty</code>. Engineering review needs
+at minimum: <code>part_number</code>, <code>vendor</code>, <code>description</code>, per-line mass,
+total mass. The data already lives in META rows — the BOM command
+just doesn't join against it. Spec-compliant BOMs typically also
+have column headers in the right order for an MRP / ERP import.</p>
+<p><strong>Repro</strong>: <code>mk bom asm_window_test</code> — 5 lines, no useful identifiers
+beyond <code>part_n20_worm_motor_16rpm</code> (the kb_name, not the vendor's
+part number).</p>
+<h3 id="2-mk-part-show-doesnt-honor-the-typed-meta-namespaces-2h">2. <code>mk part show</code> doesn't honor the typed META namespaces (~2h)<a class="headerlink" href="#2-mk-part-show-doesnt-honor-the-typed-meta-namespaces-2h" title="Permanent link">&para;</a></h3>
+<p>After Phase B.3 introduced dotted META keys, <code>mk part show</code> still
+displays them flat:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>META.electrical.voltage_max_v = 12.0
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>META.electrical.voltage_min_v = 3.0
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>META.electrical.voltage_nominal_v = 12.0
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>META.encoder.present = True
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>...
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>META._TODO_electrical_back_emf_v_per_krpm = None
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>META._TODO_electrical_resistance_ohm = None
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>...
+</span></code></pre></div>
+<p>Real values and <code>_TODO_</code> placeholders interleave alphabetically;
+namespaces don't group visually. The new <code>mk part export &lt;kb&gt;</code>
+groups them correctly via <code>meta_tree.py</code>; <code>show</code> should reuse the
+same builder for a tree-formatted display, and visually segregate
+<code>_TODO_*</code> placeholders below the real schema.</p>
+<h3 id="3-mk-part-show-omits-joint-directions-30min">3. <code>mk part show</code> omits joint directions (~30min)<a class="headerlink" href="#3-mk-part-show-omits-joint-directions-30min" title="Permanent link">&para;</a></h3>
+<p>Each JOINT row stores <code>origin</code>, optionally <code>z_dir</code>, optionally
+<code>x_dir</code>. <code>mk part show</code> prints only <code>origin</code>. For a motor with
+shafts on +Y and -Y, knowing the direction is essential context;
+otherwise the joint name has to encode it (<code>shaft_a_tip</code> vs
+<code>shaft_b_tip</code> — which is +Y?).</p>
+<h3 id="4-urdf-link-names-are-unnecessarily-verbose-2h">4. URDF link names are unnecessarily verbose (~2h)<a class="headerlink" href="#4-urdf-link-names-are-unnecessarily-verbose-2h" title="Permanent link">&para;</a></h3>
+<p><code>asm_window_test__INST__bracket</code> for every link. The full
+ltree-path sanitization disambiguates across SUBs, but flat
+assemblies don't need it. Add <code>--short-names</code> (or default short
+when no SUBs exist) to emit just <code>bracket</code> / <code>motor</code> / <code>lever</code>.
+Currently the names make hand-editing URDF and reading sim logs
+unpleasant.</p>
+<h3 id="5-urdf-inertia-tensors-have-numerical-noise-off-diagonals-1h">5. URDF inertia tensors have numerical-noise off-diagonals (~1h)<a class="headerlink" href="#5-urdf-inertia-tensors-have-numerical-noise-off-diagonals-1h" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>&lt;inertia ixx=&quot;9.20769755e-08&quot; ixy=&quot;1.79056769e-24&quot; ixz=&quot;1.10418341e-24&quot;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>         iyy=&quot;6.44100183e-08&quot; iyz=&quot;5.48361356e-24&quot; izz=&quot;4.45295808e-08&quot;/&gt;
+</span></code></pre></div>
+<p><code>ixy</code> etc. are float-math zero from the OCP integration. URDF
+consumers ignore them, but the file is noisy. Threshold values
+&lt; <code>1e-15</code> to literal <code>0</code> before emission. Same for CoM xyz
+components.</p>
+<h3 id="6-no-mk-asm-list-30min">6. No <code>mk asm list</code> (~30min)<a class="headerlink" href="#6-no-mk-asm-list-30min" title="Permanent link">&para;</a></h3>
+<p><code>mk part list</code> enumerates parts. <code>mk asm</code> only has <code>tree</code>. A user
+discovering the project has no way to ask "what assemblies are in
+this DB?" without poking SQL. Add <code>mk asm list</code> (mirror of part
+list).</p>
+<h3 id="7-apply-truncates-everything-invalidates-downstream-artifacts-1wk-if-pursued">7. Apply-truncates-everything invalidates downstream artifacts (~1wk if pursued)<a class="headerlink" href="#7-apply-truncates-everything-invalidates-downstream-artifacts-1wk-if-pursued" title="Permanent link">&para;</a></h3>
+<p>Every <code>mk apply</code> truncates the affected KB and rewrites — which
+also nukes <code>geom_hash</code> on INST rows. The user-visible effect:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$ mk apply window_test.py    # tweak a param
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>$ mk export asm_window_test step
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  ERR: asm_window_test.INST.bracket: missing geom_hash or ref_kb
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>       (run `mk build asm_window_test` first)
+</span></code></pre></div>
+<p>For prototyping this is fine. For an iterative "tweak a param,
+re-render" loop it's friction. v2-deferred diff-based apply
+(<code>continue.md</code> §5b) would address this; cost is non-trivial
+because the hash-cascade is downstream.</p>
+<h3 id="8-stepstlbrep-output-goes-flat-urdfshow-go-in-a-subdir-1h">8. STEP/STL/BREP output goes flat, URDF/show go in a subdir (~1h)<a class="headerlink" href="#8-stepstlbrep-output-goes-flat-urdfshow-go-in-a-subdir-1h" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>outputs/asm_window_test.step
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>outputs/asm_window_test.stl
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>outputs/asm_window_test.brep
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>outputs/asm_window_test.dxf
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>outputs/asm_window_test/         ← URDF + meshes/, show&#39;s gltf + index.html
+</span></code></pre></div>
+<p>Inconsistent. URDF needs a subdir because it has a <code>meshes/</code>
+sidecar; show needs one for the multi-file viewer assets; STL+STEP
+are single files. Unify: put everything under <code>outputs/&lt;asm&gt;/</code>
+with predictable filenames. One-time output-path migration.</p>
+<hr />
+<h2 id="medium-impact">Medium impact<a class="headerlink" href="#medium-impact" title="Permanent link">&para;</a></h2>
+<h3 id="9-occ-ezdxf-log-noise-pollutes-every-command-1h">9. OCC + ezdxf log noise pollutes every command (~1h)<a class="headerlink" href="#9-occ-ezdxf-log-noise-pollutes-every-command-1h" title="Permanent link">&para;</a></h3>
+<p>Every <code>mk</code> command (even <code>mk mass</code>) prints:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>WARNING ezdxf: Cannot create cache home directory: &#39;/.cache/ezdxf&#39;, cache files will not be saved.
+</span></code></pre></div>
+<p>Because build123d imports ezdxf eagerly, this fires on import-time
+regardless of whether the user touches DXF. Also OCC's STEP writer
+prints multi-line ANSI-colored "Statistics on Transfer" blocks. All
+of this noise is fixable with stderr suppression around the noisy
+imports/calls.</p>
+<h3 id="10-mk-mass-mixes-per-inst-details-with-the-summary-30min">10. <code>mk mass</code> mixes per-inst details with the summary (~30min)<a class="headerlink" href="#10-mk-mass-mixes-per-inst-details-with-the-summary-30min" title="Permanent link">&para;</a></h3>
+<p>Five per-inst lines (V, ρ, mass, CoM) followed by the assembly
+total + inertia tensor + principal axes. The user asking "how
+heavy is this?" has to scroll past the per-inst lines to find
+<code>total mass:</code>. Move per-inst behind <code>--verbose</code> and lead with the
+summary; or <code>-q</code> for summary-only. Per-inst is useful when
+debugging a mass-override mismatch but not the common case.</p>
+<h3 id="11-mk-measure-joint-name-column-alignment-is-off-15min">11. <code>mk measure</code> joint-name column alignment is off (~15min)<a class="headerlink" href="#11-mk-measure-joint-name-column-alignment-is-off-15min" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>  lbracket.foot_bottom     origin=...    ← double-space
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  lever.shaft_socket    origin=...        ← single-space
+</span></code></pre></div>
+<p>Compute column widths from the longest joint name, not the inst
+name. Cosmetic but jarring.</p>
+<h3 id="12-mk-measure-doesnt-sanity-check-mates-1h">12. <code>mk measure</code> doesn't sanity-check mates (~1h)<a class="headerlink" href="#12-mk-measure-doesnt-sanity-check-mates-1h" title="Permanent link">&para;</a></h3>
+<p>For every rigid MATE, the two joint origins should be coincident
+in world (distance 0). For revolute/prismatic, they should
+coincide at DOF=0. Surface this as a default check —
+"all mates closed within 1e-6 mm" — and warn if any mate has
+non-zero gap. Catches "I changed a param and the mate doesn't
+quite close" silently-broken builds.</p>
+<h3 id="13-mk-show-doesnt-volunteer-layer-state-in-stdout-15min">13. <code>mk show</code> doesn't volunteer layer state in stdout (~15min)<a class="headerlink" href="#13-mk-show-doesnt-volunteer-layer-state-in-stdout-15min" title="Permanent link">&para;</a></h3>
+<p>If 3 of 5 insts are on a hidden layer, the user opening the
+viewer sees a sparse scene and might think the build broke. <code>mk
+show</code> currently logs only the filter count when something is
+filtered; should always log the per-layer breakdown so the user
+knows what's in the scene.</p>
+<h3 id="14-mk-part-show-lacks-json-15min">14. <code>mk part show</code> lacks <code>--json</code> (~15min)<a class="headerlink" href="#14-mk-part-show-lacks-json-15min" title="Permanent link">&para;</a></h3>
+<p><code>mk part export &lt;kb&gt;</code> exists (Phase B.3) and emits the structured
+JSON. But <code>mk part show</code> is the discoverable "tell me about this
+part" command. Add <code>--json</code> to <code>mk part show</code> as an alias to
+<code>mk part export &lt;kb&gt;</code> so users don't need to know two commands
+mean similar things.</p>
+<h3 id="15-mk-part-export-json-emits-instead-of-literal-5min">15. <code>mk part export</code> JSON emits <code>Φ</code> instead of literal Φ (~5min)<a class="headerlink" href="#15-mk-part-export-json-emits-instead-of-literal-5min" title="Permanent link">&para;</a></h3>
+<p><code>ensure_ascii=False</code> on the <code>json.dumps</code> call. Trivial; tested
+in the controller-under-test path where they'd see this when
+loading the sim contract.</p>
+<h3 id="16-no-mk-state-cli-for-joint-pose-setting-2h">16. No <code>mk state</code> CLI for joint pose-setting (~2h)<a class="headerlink" href="#16-no-mk-state-cli-for-joint-pose-setting-2h" title="Permanent link">&para;</a></h3>
+<p>State injection (B.2.a) reads <code>outputs/&lt;asm&gt;/state.json</code> — but
+users have to hand-edit JSON to set a mate's DOF. Add:
+- <code>mk state ls &lt;asm&gt;</code> — show current state.json contents + each
+  mate's default and limits
+- <code>mk state set &lt;asm&gt; &lt;mate&gt; &lt;value&gt;</code> — write into state.json
+- <code>mk state reset &lt;asm&gt;</code> — remove state.json so defaults apply</p>
+<p>Then <code>mk build &amp;&amp; mk show</code> cycles for pose-setting feel natural.</p>
+<hr />
+<h2 id="low-impact">Low impact<a class="headerlink" href="#low-impact" title="Permanent link">&para;</a></h2>
+<h3 id="17-mk-apply-is-verbose-with-print-from-vendored-kb-infra">17. <code>mk apply</code> is verbose with <code>print()</code> from vendored KB infra<a class="headerlink" href="#17-mk-apply-is-verbose-with-print-from-vendored-kb-infra" title="Permanent link">&para;</a></h3>
+<p>The vendored <code>Construct_KB.add_header_node</code> does
+<code>print("path", path)</code>; our <code>kb.py</code> redirects stdout but only for
+some calls. On a fresh apply, hundreds of "path ..." lines
+should go away — we already suppress them via <code>redirect_stdout</code>.
+Worth verifying nothing leaks.</p>
+<h3 id="18-no-inst-rows-in-conflates-no-such-assembly-with-applied-but-empty">18. "no INST rows in <kb>" conflates "no such assembly" with "applied but empty"<a class="headerlink" href="#18-no-inst-rows-in-conflates-no-such-assembly-with-applied-but-empty" title="Permanent link">&para;</a></h3>
+<p><code>mk mass typo_asm</code> says "no INST rows" — but <code>typo_asm</code> doesn't
+exist as a KB at all. Should distinguish:
+- "no such assembly: typo_asm" (no info row)
+- "asm_x has no INST rows" (info row exists, body is empty)
+Same fix in <code>mk build</code>, <code>mk bom</code>, <code>mk export</code>.</p>
+<h3 id="19-step-geometry-hash-is-non-deterministic">19. STEP geometry hash is non-deterministic<a class="headerlink" href="#19-step-geometry-hash-is-non-deterministic" title="Permanent link">&para;</a></h3>
+<p>Mentioned in continue.md §9. <code>sha256(STEP-bytes)</code> picks up OCC's
+timestamp. Cosmetic for the prototype but blocks v2 hash-cascade
+caching plans.</p>
+<h3 id="20-readme-status-is-stale">20. README status is stale<a class="headerlink" href="#20-readme-status-is-stale" title="Permanent link">&para;</a></h3>
+<p>Says "v1 baselined". Reality is closer to "v2 effectively
+complete, B.2.b deferred, evaluation in flight". One-paragraph
+update. Pointers to continue.md §10-14 for the new features
+(URDF, typed META, layers, STEP+XCAF, DXF).</p>
+<h3 id="21-ezdxf-info-ezdxf-did-not-write-header-var-interfereobjvs-on-dxf-write">21. ezdxf "INFO ezdxf: did not write header var $INTERFEREOBJVS" on DXF write<a class="headerlink" href="#21-ezdxf-info-ezdxf-did-not-write-header-var-interfereobjvs-on-dxf-write" title="Permanent link">&para;</a></h3>
+<p>Harmless library logging that escaped to stderr. Filter or
+suppress.</p>
+<h3 id="22-mate-names-still-start-with-a_b_c_d_">22. <code>mate</code> names still start with <code>a_/b_/c_/d_</code><a class="headerlink" href="#22-mate-names-still-start-with-a_b_c_d_" title="Permanent link">&para;</a></h3>
+<p>Vestige of pre-Phase-A naming discipline (alphabetical order to
+satisfy the old solver). Topo-sort (Phase A) removed the need but
+the names persist in fixtures. Renaming is cosmetic; users
+writing new manifests don't need the prefix. Worth a one-line
+note in <code>writing-parts.md</code>.</p>
+<h3 id="23-mk-layer-ls-has-trailing-whitespace-on-every-row">23. <code>mk layer ls</code> has trailing whitespace on every row<a class="headerlink" href="#23-mk-layer-ls-has-trailing-whitespace-on-every-row" title="Permanent link">&para;</a></h3>
+<p>f-string padding bug — empty DESCRIPTION column ends with a
+trailing space. Cosmetic.</p>
+<hr />
+<h2 id="surprises-worth-recording-no-fix-yet">Surprises (worth recording, no fix yet)<a class="headerlink" href="#surprises-worth-recording-no-fix-yet" title="Permanent link">&para;</a></h2>
+<h3 id="a-occs-step-xcaf-writer-drops-multi-shape-per-layer-info">A. OCC's STEP XCAF writer drops multi-shape-per-layer info<a class="headerlink" href="#a-occs-step-xcaf-writer-drops-multi-shape-per-layer-info" title="Permanent link">&para;</a></h3>
+<p>Discovered during C.4 (Phase C.3+C.4 commit). Single-tag distinct-
+layer shapes survive write/read; multi-shape-same-layer collapses
+to one shape in the STEP file. Documented in <code>src/mk/step_xcaf.py</code>.
+Upstream OCCT issue; can be worked around by post-processing the
+STEP text or via newer OCC. Not blocking for v2 since Phase D's DXF
+output goes through ezdxf directly, but a real user wanting layer-
+preserving STEP roundtrip will hit this.</p>
+<h3 id="b-container-build-is-1-minute-per-code-change">B. Container build is ~1 minute per code change<a class="headerlink" href="#b-container-build-is-1-minute-per-code-change" title="Permanent link">&para;</a></h3>
+<p><code>docker compose build cad</code> rebuilds the <code>pip install</code> layer every
+time <code>src/</code> changes. Bind-mounting <code>src/</code> would skip the rebuild
+for interactive iteration. Worth a <code>compose.dev.yaml</code> for the
+prototyping mode (and the current image for "ship" mode).</p>
+<h3 id="c-the-viewers-model-viewer-cdn-dependency">C. The viewer's <code>&lt;model-viewer&gt;</code> CDN dependency<a class="headerlink" href="#c-the-viewers-model-viewer-cdn-dependency" title="Permanent link">&para;</a></h3>
+<p><code>mk show</code> emits an <code>index.html</code> that pulls
+<code>model-viewer.min.js</code> from <code>ajax.googleapis.com</code>. First load
+needs internet. Air-gapped deployments would need to vendor the
+JS locally. Documented in continue.md §3.</p>
+<hr />
+<h2 id="what-was-not-painful">What was NOT painful<a class="headerlink" href="#what-was-not-painful" title="Permanent link">&para;</a></h2>
+<p>For balance — things that worked smoothly:</p>
+<ul>
+<li><code>mk apply</code> → <code>mk build</code> → <code>mk export &lt;fmt&gt;</code> end-to-end on a real 5-part
+  assembly with mated parts. The mate solver placed everything correctly;
+  STEP, STL, URDF, and DXF all produced sensible output.</li>
+<li>The typed META schema (Phase B.3) genuinely makes the motor's data
+  feel like a real datasheet record. <code>mk part export</code> JSON is exactly
+  what a controller-under-test wants.</li>
+<li>Phase C's layer toggle workflow (<code>mk layer set foo off</code> → <code>mk show</code>
+  → toggle back on) is fast and intuitive. The state-preservation
+  across re-apply is invisible but correct, which is the right
+  invisible-correctness behaviour.</li>
+<li>URDF mass + inertia values match hand-calculation for known
+  geometries (the hinge leaf box matched analytically).</li>
+<li>150 host tests run in 110 ms. Test feedback is immediate.</li>
+</ul>
+<hr />
+<h2 id="priorities-for-v3">Priorities for v3<a class="headerlink" href="#priorities-for-v3" title="Permanent link">&para;</a></h2>
+<p>If a v3 cycle starts from this list, the natural order is:</p>
+<ol>
+<li><strong>Quick wins</strong> (#15, #11, #21, #23, #18) — ~4 hours total. CLI polish.</li>
+<li><strong>BOM rewrite</strong> (#1) — 1 day. Most-asked-for feature gap.</li>
+<li><strong>Output-layout unification</strong> (#8) + <strong>state-CLI</strong> (#16) — 1 day combined.</li>
+<li><strong>Mass / show summary cleanup</strong> (#10, #13) — 2 hours.</li>
+<li><strong>Diff apply</strong> (#7) — ~1 week. Biggest impact for iterative workflow but most invasive.</li>
+</ol>
+<p>Items #19, #20, #22, A, B, C are documentation / cleanup that
+shouldn't block v3 feature work but should ride along.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.expand", "navigation.indexes", "navigation.top", "toc.follow", "content.code.copy", "content.code.annotate", "content.action.edit", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

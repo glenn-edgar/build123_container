@@ -656,6 +656,33 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v2_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v2 — Evaluation log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -914,19 +941,19 @@ namespace at build time — outer imports won't follow it.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>a.inst(name, *, ref_kb, params_override=None, location=None)</code></td>
+<td><code>a.inst(name, *, ref_kb, params_override=None, location=None, layer=None)</code></td>
 <td><code>INST</code> row</td>
-<td>place a part instance</td>
+<td>place a part instance; optional layer tag (single name or comma-separated multi-tag)</td>
 </tr>
 <tr>
-<td><code>a.sub(name, description="")</code></td>
+<td><code>a.sub(name, description="", *, layer=None)</code></td>
 <td><code>SUB</code> row, returns nested AsmBuilder</td>
-<td>use as <code>with a.sub("frame") as s:</code></td>
+<td>use as <code>with a.sub("frame") as s:</code>; layer cascades to descendants</td>
 </tr>
 <tr>
-<td><code>a.mate(name, *, joint_a, joint_b, mate_type="rigid", params=None)</code></td>
+<td><code>a.mate(name, *, joint_a, joint_b, mate_type="rigid", align="z", axis=None, limits=None, default=None, params=None)</code></td>
 <td><code>MATE</code> row</td>
-<td>rigid mate solver runs at <code>mk build</code> time</td>
+<td>mate solver runs at <code>mk build</code> time. <code>align="z"</code> (default) opposes joint normals; <code>align="position"</code> translates only (pin-into-bushing). Revolute/prismatic mates use <code>axis</code>, <code>limits=[lo, hi]</code>, <code>default</code> (deg or mm); <code>align</code> is ignored.</td>
 </tr>
 </tbody>
 </table>
