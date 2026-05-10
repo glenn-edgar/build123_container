@@ -61,13 +61,22 @@ def run(args: argparse.Namespace) -> int:
     # entirely from the glTF, sidebar, joint hotspots, and mass tally.
     # Always volunteer the layer breakdown so users opening a sparse
     # scene know whether it's "build broke" or "layers hidden".
-    from mk.layers import list_layer_rows, partition_by_visibility
+    from mk.layers import count_insts_per_layer, list_layer_rows, partition_by_visibility
     total_insts = len(inst_rows)
     inst_rows, hidden_count = partition_by_visibility(conn, args.asm_kb, inst_rows)
 
     layers = list_layer_rows(conn, args.asm_kb)
-    visible_names = sorted(n for n, p in layers if p.get("visible", True))
-    hidden_names = sorted(n for n, p in layers if not p.get("visible", True))
+    counts = count_insts_per_layer(conn, args.asm_kb)
+    # R3.5: drop 0-inst layers from the listed names. DEFAULT and other
+    # layers that no inst is on shouldn't clutter the breakdown.
+    visible_names = sorted(
+        n for n, p in layers
+        if p.get("visible", True) and counts.get(n, 0) > 0
+    )
+    hidden_names = sorted(
+        n for n, p in layers
+        if not p.get("visible", True) and counts.get(n, 0) > 0
+    )
     if hidden_count > 0:
         print(
             f"layer state: {len(inst_rows)}/{total_insts} inst(s) visible — "

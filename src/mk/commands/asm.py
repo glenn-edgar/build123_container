@@ -72,11 +72,17 @@ _ASM_TEMPLATE_FLAT = '''# SPDX-License-Identifier: MPL-2.0
 """{kb_name} — scaffolded by `mk asm new` (template: flat).
 
 Single inst, no mates. Edit to add more insts + `a.mate(...)` calls.
-Apply / build / show:
 
+PREREQ: the template references `part_unit_box` (a 10 mm cube
+defined in `project/manifests/box_unit.py`). Apply it first, or
+edit the inst's ref_kb to point at a part you already have:
+
+    mk apply /project/manifests/box_unit.py        # → part_unit_box
     mk apply /project/manifests/{stem}.py
     mk build {kb_name}
     mk show {kb_name}
+
+`mk part list` shows every part already in the DB.
 """
 from mk.kb import connect, kb_asm
 
@@ -106,23 +112,32 @@ _ASM_TEMPLATE_WITH_SUB = '''# SPDX-License-Identifier: MPL-2.0
 """{kb_name} — scaffolded by `mk asm new` (template: with_sub).
 
 Two-level assembly. Demonstrates SUB-scope mate path form
-(`{kb_name}.SUB.<sub>.INST.<inst>.JOINT.<joint>`).
+(`{kb_name}.SUB.<sub>.INST.<inst>.JOINT.<joint>`) and layer cascading.
 
+PREREQ: the template's mate references `part_block`'s face_pos /
+face_neg joints. Apply that part first (it lives in
+`tests/fixtures/nested_asm.py` and is also kept under
+`project/manifests/nested_asm.py` as a copy):
+
+    mk apply /project/manifests/nested_asm.py     # → part_block + asm_nested
     mk apply /project/manifests/{stem}.py
     mk build {kb_name}
     mk show {kb_name}
+
+(or replace `part_block` with a different part_kb that exposes the
+joints you actually want to mate.)
 """
 from mk.kb import connect, kb_asm
 
 
 with connect():
     with kb_asm({kb_name!r}, description="TODO: describe {stem}") as a:
-        a.inst("root", ref_kb="part_unit_box")
+        a.inst("root", ref_kb="part_block")
 
         # Subassembly scope. Layer cascades to descendants.
         with a.sub("group", description="lower-level group", layer="mechanism") as s:
-            s.inst("piece_a", ref_kb="part_unit_box")
-            s.inst("piece_b", ref_kb="part_unit_box")
+            s.inst("piece_a", ref_kb="part_block")
+            s.inst("piece_b", ref_kb="part_block")
             # Mate inside the SUB. joint_a / joint_b use full ltree paths
             # including the SUB segment.
             s.mate(

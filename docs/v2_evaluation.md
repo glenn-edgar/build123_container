@@ -355,6 +355,29 @@ After this round, the *small actionable items* are R3.5 (mk show
 layer filter) and R3.2 (scaffold ref_kb placeholder). Worth
 closing before the next eval cycle.
 
+### Round-3 close-out (same session)
+
+Both actionable items landed:
+
+**R3.5** — `mk show` filters 0-inst layers from the layer-state line.
+Before: `layer state: 2 inst(s) on layers ['DEFAULT', 'electrical', 'frame']`.
+After: `layer state: 2 inst(s) on layers ['electrical', 'frame']` (DEFAULT
+gone, since no inst is attached to it). Logic now requires
+`counts.get(name, 0) > 0` in addition to visibility.
+
+**R3.2** — both `mk asm new` templates gain a clear PREREQ section in
+the docstring. `with_sub` now uses `part_block` as ref_kb (which
+actually has the face_pos/face_neg joints the template references —
+the previous `part_unit_box` only had `s` param + density, so the
+template would fail to mate). Top-of-file docstring lists the
+required `mk apply nested_asm.py` step. `flat` template gains the
+same treatment for `box_unit.py`.
+
+Remaining round-3 items are design-deferred (R3.1 container startup,
+R3.3 param-aware joints, R3.6 face-aware joint API) or not
+mk-cad-actionable (R3.4 walrus-in-list). Evaluation cycle is
+genuinely complete.
+
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
 

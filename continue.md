@@ -129,6 +129,17 @@ Other R3 items: R3.1 container startup (~hard, needs REPL), R3.3
 joint origins not param-expressed (design), R3.6 face-aware joint
 API (design), R3.4 not mk-cad-actionable.
 
+**Round-3 close-out** (same session): R3.5 and R3.2 closed.
+`mk show` layer-state line drops 0-inst layers. Both
+`mk asm new` templates gained PREREQ sections explaining which
+part manifest to apply first; `with_sub` switched to `part_block`
+(which actually has face_pos/face_neg joints).
+
+Friction log status: every actionable item closed across rounds
+1/2/3. Three explicitly deferred (BOM rewrite, diff apply, STEP
+determinism), three design-deferred (R3.1/R3.3/R3.6), one
+documented surprise carrying forward (model-viewer CDN).
+
 **State of the repo**: clean working tree (assuming this session's
 D.1+D.2 commit lands), `main` at the most recent commit. Docs at
 https://glenn-edgar.github.io/build123_container/.
