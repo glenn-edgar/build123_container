@@ -126,6 +126,30 @@ build123d, OCP, and the SQLite ltree extension available — but those are
 why we use Docker in the first place. For docs editing, no container
 needed; just `mkdocs serve`.
 
+## Fast iteration (compose.dev.yaml)
+
+The default `docker compose run --rm cad ...` uses the pip-installed
+`mk` from inside the image, so every code change requires
+`docker compose build cad` (~30 s) before the change is visible. For
+tight iteration loops, the bind-mount overlay skips the rebuild:
+
+```bash
+# Production-style (pinned image, no source bind):
+docker compose run --rm cad layer ls asm_window_test
+
+# Dev mode (host src/mk overlaid on the installed package):
+docker compose -f compose.yaml -f compose.dev.yaml run --rm cad layer ls asm_window_test
+```
+
+Or alias it once:
+
+```bash
+alias mk-dev='docker compose -f compose.yaml -f compose.dev.yaml run --rm cad'
+mk-dev layer ls asm_window_test
+```
+
+The dev overlay is opt-in. Use the plain compose for CI / distribution.
+
 ## Contributing
 
 Manifests live under `project/manifests/`. Add a new part with:

@@ -1,0 +1,20 @@
+# Dev-mode overlay: bind-mounts src/mk/ over the container's pip-installed
+# package so code changes are picked up instantly. Use with:
+#
+#   docker compose -f compose.yaml -f compose.dev.yaml run --rm cad <cmd>
+#
+# Or alias it:
+#
+#   alias mk-dev='docker compose -f compose.yaml -f compose.dev.yaml run --rm cad'
+#
+# The production image (compose.yaml alone) keeps the pip-installed code
+# and is still the right answer for distribution / CI / anywhere a
+# pinned-image guarantee matters.
+services:
+  cad:
+    volumes:
+      # Bind the host src/mk over the installed package. Read-only so
+      # accidental in-container writes don't bleed out to the host tree.
+      - ./src/mk:/usr/local/lib/python3.12/site-packages/mk:ro
+      # Vendor subset (KB infra + ltree source) — same pattern.
+      - ./vendor:/usr/local/lib/python3.12/site-packages/vendor:ro

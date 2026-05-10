@@ -180,6 +180,57 @@ After this close-out, the friction log is empty of unaddressed
 items. The three deferred buckets (BOM rewrite, diff apply, STEP
 determinism) and three documented surprises remain by design.
 
+### Two surprises closed (same session)
+
+Surprise A (OCC STEP XCAF multi-shape-layer bug) and surprise B
+(container rebuild loop) both landed:
+
+**Surprise B — `compose.dev.yaml`** (~30 min). Overlay that bind-
+mounts `./src/mk:/usr/local/lib/python3.12/site-packages/mk:ro`
+over the pip-installed package. Code changes are picked up
+without rebuilding the image. Used as:
+
+    docker compose -f compose.yaml -f compose.dev.yaml run --rm cad ...
+
+or via the `alias mk-dev='...'` shortcut documented in the README.
+Production-style `docker compose run --rm cad ...` still works
+identically — the overlay is opt-in.
+
+**Surprise A — STEP XCAF post-processor** (~2 h). OCC 7.8.1.1's
+`STEPCAFControl_Writer` emits at most one shape per
+`PRESENTATION_LAYER_ASSIGNMENT` entity and drops multi-tagged
+shapes. The fix is a text-level post-processor in
+`mk/step_xcaf.py::_rewrite_layer_assignments`:
+
+1. After `Write()`, read the STEP file as text.
+2. Find every `MANIFOLD_SOLID_BREP` entity ID in file order
+   (verified to match the XCAF add-order, which matches
+   `inst_rows`'s iteration order).
+3. Strip OCC's broken `PRESENTATION_LAYER_ASSIGNMENT` lines.
+4. Emit fresh ones from the Python-side `inst_layer_lists` map —
+   sorted by layer name, each entry's tuple contains every
+   shape's entity ID. Inserted just before the **DATA** section's
+   `ENDSEC` (not the header's — that bug bit during dev).
+
+Bails out with a stderr warning if the entity count doesn't
+match the XCAF expectation (defensive against future OCC version
+changes that might reorder entities).
+
+Verified roundtrips:
+- `asm_window_test` (5 shapes all DEFAULT): `{DEFAULT: 5}` ✓
+- `asm_nested` (4 shapes, multi-tag inner_a2):
+  `{electronics: 2, emi: 1, frame: 1, mechanical: 1}` ✓ —
+  multi-tag preserved.
+
+The `read_step_layer_assignments` helper also had to flip from
+per-shape `GetLayers` (which has its own OCP quirk on multi-shape
+PLAs) to per-layer `GetShapesOfLayer_s` to surface the real
+mapping cleanly. That made the OCP-side test agree with the
+text-parse of the file.
+
+After this, only the **`<model-viewer>` CDN dependency** (surprise C)
+remains as a non-blocking carry-over. v3 polish is genuinely done.
+
 The original entries below are preserved verbatim as a snapshot of what
 was found at evaluation time.
 
